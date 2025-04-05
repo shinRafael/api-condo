@@ -17,7 +17,7 @@ module.exports = {
 
         }
     },
-    async cadrastacondominio (request, response){
+    async cadrastocondominio (request, response){
         try{
          return response.status(200).json({
                 sucesso: true,
@@ -65,4 +65,4 @@ module.exports = {
 
         }
     },
-}
+}       

@@ -8,4 +8,11 @@ router.post('/condominio', condominioController.cadrastocondominio);
 router.patch('/condominio', condominioController.editarcondominio);
 router.delete('/condominio', condominioController.apagarcondominio);
 
+const gerenciamentoController = require('../controllers/gerenciamento');
+
+router.get('/gerenciamento', gerenciamentoController.listargerenciamento);
+router.post('/gerenciamento', gerenciamentoController.cadrastogerenciamento);
+router.patch('/gerenciamento', gerenciamentoController.editargerenciamento);
+router.delete('/gerenciamento', gerenciamentoController.apagargerenciamto);
+
 module.exports = router;

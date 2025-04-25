@@ -8,14 +8,13 @@ module.exports = {
              SELECT cond_id, cond_nome, cond_endereco,
               cond_cidade FROM Condominio;
          `;
-         const [row] = await bd.query(sql);
-         const nItens = row.length;
+         const [rows] = await bd.query(sql);
 
          return response.status(200).json({
                 sucesso: true,
                 mensagem: 'Lista de condominio.',
-                nItens,
-                dados: row
+                itens: rows.length, 
+                dados: rows
              })
         }catch (error){
             return response.status(550).json({
@@ -29,23 +28,34 @@ module.exports = {
     async cadrastocondominio (request, response){
         try{
            const { nome, endereco, cidade } = request.body;
-           const cond_id = 1;
+           const cond_ativo = 1;
 
            // instrução SQL
            const sql = `
-               INSERT INTO cond 
+               INSERT INTO condominio
                     (cond_nome, cond_endereco, cond_cidade)
                VALUES 
                (?, ?, ?);
            `;
 
            // definição dos dados a serem inseridos em um array
-           const values = [nome]
+           const values = [ nome, endereco, cidade];
+
+           //execução da instrução sql passando os parâmetros
+           const [result] = await bd.query(sql, values);
+
+           //Identificação do ID do registro inserido 
+           const dados = {
+            id: result.insertId,
+            nome,
+            endereco,
+            cidade
+           };
 
          return response.status(200).json({
                 sucesso: true,
                 mensagem: 'Cadrasto condominio.',
-                dados: null
+                dados: dados
              })
         }catch (error){
             return response.status(550).json({

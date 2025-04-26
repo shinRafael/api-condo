@@ -68,15 +68,31 @@ module.exports = {
     },
     async editarcondominio (request, response){
         try{
+            //parâmetros recebidos pelo corpo da requisição 
+            const {  nome, endereco, cidade } = request.body;
+            //parâmetro recebido pela URL via params ex: /usuario/1
+            const { id } = request.params;
+            // instrução SQL
+            const sql = `
+               UPDATE condominio SET cond_nome = ?, cond_endereco = ?, cond_cidade = ?
+               WHERE cond_id = ?
+           `;
+           //preparo do array com dados que serão atualizados 
+           const values = [nome, endereco, cidade, id];
+           //execução e obtenção de confirmação da atualização realizada
+           const atualizaDados = await bd.query(sql, values);
+        
+
          return response.status(200).json({
                 sucesso: true,
-                mensagem: 'Editar condominio.',
-                dados: null
-             })
+                mensagem: `Usuário ${id} atualizado com sucesso!`,
+                dados: atualizaDados[0].affectedRows
+                //mensSql: atualizaDados
+             });
         }catch (error){
             return response.status(550).json({
                 sucesso: false,
-                mensagem: 'Erro na listagem de condominio.',
+                mensagem: 'Erro na requisição.',
                 dados: error.message
              });
 

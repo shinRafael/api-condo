@@ -6,7 +6,7 @@ const condominioController = require('../controllers/condominio');
 router.get('/condominio', condominioController.listarcondominio);
 router.post('/condominio', condominioController.cadrastocondominio);
 router.patch('/condominio/:id', condominioController.editarcondominio);
-router.delete('/condominio', condominioController.apagarcondominio);
+router.delete('/condominio/:id', condominioController.apagarcondominio);
 
 const gerenciamentoController = require('../controllers/gerenciamento');
 

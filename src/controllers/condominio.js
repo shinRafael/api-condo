@@ -98,20 +98,43 @@ module.exports = {
 
         }
     },
-    async apagarcondominio (request, response){
-        try{
-         return response.status(200).json({
+    async apagarCondominio(request, response) {
+        try {
+            // parâmetro passado via URL na chamada da API pelo front-end
+            const { id } = request.params;
+    
+            // comando de exclusão
+            const sql = 'DELETE FROM condominio WHERE cond_id = ?';
+    
+            // array com parâmetros da exclusão
+            const values = [id];
+    
+            // executa a instrução no banco de dados
+            const [result] = await db.query(sql, values);
+    
+            // se nenhum registro foi afetado, condomínio não existe
+            if (result.affectedRows === 0) {
+                return response.status(404).json({
+                    sucesso: false,
+                    mensagem: `Condomínio ${id} não encontrado!`,
+                    dados: null
+                });
+            }
+    
+            // sucesso na exclusão
+            return response.status(200).json({
                 sucesso: true,
-                mensagem: 'Apagar condominio.',
+                mensagem: `Condomínio ${id} excluído com sucesso`,
                 dados: null
-             })
-        }catch (error){
-            return response.status(550).json({
+            });
+    
+        } catch (error) {
+            // erro interno
+            return response.status(500).json({
                 sucesso: false,
-                mensagem: 'Erro na listagem de condominio.',
+                mensagem: 'Erro na requisição.',
                 dados: error.message
-             });
-
+            });
         }
     },
 }       

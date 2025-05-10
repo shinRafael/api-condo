@@ -98,7 +98,7 @@ module.exports = {
 
         }
     },
-    async apagarCondominio(request, response) {
+    async apagarcondominio(request, response) {
         try {
             // parâmetro passado via URL na chamada da API pelo front-end
             const { id } = request.params;
@@ -110,7 +110,7 @@ module.exports = {
             const values = [id];
     
             // executa a instrução no banco de dados
-            const [result] = await db.query(sql, values);
+            const [result] = await bd.query(sql, values);
     
             // se nenhum registro foi afetado, condomínio não existe
             if (result.affectedRows === 0) {

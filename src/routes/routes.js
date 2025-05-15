@@ -13,6 +13,6 @@ const gerenciamentoController = require('../controllers/gerenciamento');
 router.get('/gerenciamento', gerenciamentoController.listargerenciamento);
 router.post('/gerenciamento', gerenciamentoController.cadrastogerenciamento);
 router.patch('/gerenciamento/:id', gerenciamentoController.editargerenciamento);
-router.delete('/gerenciamento', gerenciamentoController.apagargerenciamto);
+router.delete('/gerenciamento/:id', gerenciamentoController.apagargerenciamento);
 
 module.exports = router;

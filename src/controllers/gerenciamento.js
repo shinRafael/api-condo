@@ -1,4 +1,4 @@
-const bd = require('../dataBase/connection');
+const bd = require('../database/connection');
 
 module.exports = {
     async listargerenciamento (request, response){

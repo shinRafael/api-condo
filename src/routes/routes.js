@@ -1,18 +1,22 @@
 const express = require('express');
 const router = express.Router();
 
-const condominioController = require('../controllers/condominio');
+const RotasRafael = require('./routes-rafael');
+const RotasJoao = require('./routes-joao');
+const RotasLeo= require('./routes-leo');
+const RotasLucas = require('./routes-lucas');
+const RotasMarco = require('./routes-marco');
+const RotasMatheus = require('./routes-matheus');
+const RotasOtavio = require('./routes-otavio');
 
-router.get('/condominio', condominioController.listarcondominio);
-router.post('/condominio', condominioController.cadrastocondominio);
-router.patch('/condominio/:id', condominioController.editarcondominio);
-router.delete('/condominio/:id', condominioController.apagarcondominio);
 
-const gerenciamentoController = require('../controllers/gerenciamento');
+router.use('/', RotasRafael);
+router.use('/', RotasJoao);
+router.use('/', RotasLeo);
+router.use('/', RotasLucas);
+router.use('/', RotasMarco);
+router.use('/', RotasMatheus);
+router.use('/', RotasOtavio);
 
-router.get('/gerenciamento', gerenciamentoController.listargerenciamento);
-router.post('/gerenciamento', gerenciamentoController.cadrastogerenciamento);
-router.patch('/gerenciamento/:id', gerenciamentoController.editargerenciamento);
-router.delete('/gerenciamento/:id', gerenciamentoController.apagargerenciamento);
 
 module.exports = router;

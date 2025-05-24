@@ -66,7 +66,7 @@ CREATE TABLE Visitantes (
 -- 8. Usuario_Apartamentos
 CREATE TABLE Usuario_Apartamentos (
     userap_id INT AUTO_INCREMENT PRIMARY KEY,
-    userid INT NOT NULL,
+    user_id INT NOT NULL,
     ap_id INT NOT NULL,
     FOREIGN KEY (user_id) REFERENCES Usuarios(user_id),
     FOREIGN KEY (ap_id) REFERENCES Apartamentos(ap_id)
@@ -98,7 +98,7 @@ CREATE TABLE Notificacoes (
 CREATE TABLE Reservas_Ambientes (
     res_id INT AUTO_INCREMENT PRIMARY KEY,
     userap_id INT NOT NULL,
-    ambiid INT NOT NULL,
+    amb_id INT NOT NULL,
     res_horario_inicio TIME NOT NULL,
     res_horario_fim TIME NOT NULL,
     res_status VARCHAR(25) NOT NULL,

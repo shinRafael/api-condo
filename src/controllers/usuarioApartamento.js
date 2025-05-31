@@ -1,33 +1,38 @@
 const db = require('../database/connection');
 
 module.exports ={
-    async listarUsuariosApartamento (request, response) {
+    async listarUsuariosApartamento(request, response) {
         try {
-
             const sql = `
                 SELECT userap_id, userid, ap_id 
                 FROM usuario_apartamento;
             `;
-
-            const [row] = await db.query(sql);
-            const nItens = row.length;
-
-
+    
+            const [rows] = await db.query(sql);
+            const nItens = rows.length;
+    
+            const dados = rows.map(item => ({
+                id: item.userap_id,
+                usuarioId: item.userid,
+                apartamentoId: item.ap_id
+            }));
+    
             return response.status(200).json({
                 sucesso: true,
-                mensagem: 'Lista de usuários.',
+                mensagem: 'Lista de usuários vinculados aos apartamentos.',
                 nItens,
-                dados: row
+                dados
             });
+    
         } catch (error) {
             return response.status(500).json({
                 sucesso: false,
                 mensagem: 'Erro na Listagem de usuários.',
                 dados: error.message
-            
             });
-        }   
+        }
     },
+    
     async cadastrarUsuariosApartamento (request, response) {
         try {
             const { userid, ap_id } = request.body;

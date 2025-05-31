@@ -1,31 +1,39 @@
 const db = require('../database/connection');
 
 module.exports ={
-    async listarAmbientes (request, response) {
+    async listarAmbientes(request, response) {
         try {
-
             const sql = `
-            SELECT cond_id, amb_descricao, 
-            amb_nome, amb_capacidade
-            FROM ambientes;
-        `;
-        const [row] = await db.query(sql);
-        const nItens = row.length;
-
+                SELECT amb_id, cond_id, amb_nome, 
+                       amb_descricao, amb_capacidade
+                FROM ambientes;
+            `;
+    
+            const [rows] = await db.query(sql);
+            const nItens = rows.length;
+    
+            const dados = rows.map(item => ({
+                id: item.amb_id,
+                condominioId: item.cond_id,
+                nome: item.amb_nome,
+                descricao: item.amb_descricao,
+                capacidade: item.amb_capacidade
+            }));
+    
             return response.status(200).json({
                 sucesso: true,
                 mensagem: 'Lista de Ambientes.',
                 nItens,
-                dados: row
+                dados
             });
+    
         } catch (error) {
             return response.status(500).json({
                 sucesso: false,
                 mensagem: 'Erro na Listagem de Ambientes.',
                 dados: error.message
-            
             });
-        }   
+        }
     },
     async cadastrarAmbientes(request, response) {
         try {

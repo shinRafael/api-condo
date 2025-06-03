@@ -137,4 +137,35 @@ module.exports = {
             });
         }
     },
-}       
+    async filtrarCondominios(request, response) {
+        try {
+            const {nome, status } = request.query;
+
+            let sql = 'SELECT * FROM condominio WHERE 1=1';
+            const params = [];
+
+            if (nome) {
+                sql += 'AND cond_nome LIKE ?';
+                params.push(`%${nome}%`);
+            }
+            if (status) { 
+                sql += ' AND cond_status = ?'; 
+                params.push(status);
+            }
+
+            const [rows] = await db.query(sql, params);
+             
+            return response.status(200).json({
+                sucesso: true,
+                mensagem: 'Condomínios filtrados com sucesso!',
+                dados: rows
+            });
+        } catch (error) {
+            return response.status(500).json({
+                sucesso: false,
+                mansagem: 'Erro ao filtrar condomínios.',
+                dados: error.message
+            });
+        }
+    }
+};       

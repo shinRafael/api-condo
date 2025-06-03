@@ -150,5 +150,36 @@ async apagargerenciamento(request, response) {
             dados: error.message
         });
       }
+   },
+   async filtrarGerenciamento(request, response){
+    try {
+        const { tipo, condominio } = request.query;
+
+        let sql = 'SELECT * FROM gerenciamento WHERE 1=1';
+        const params = [];
+
+        if (tipo) {
+            sql += 'AND tipo_usuario = ?';
+            params.push(tipo);
+        }
+
+        if (condominio) { 
+            sql += 'AND cond_id = ?';
+            params.push(condominio);
+        }
+        const [rows] = await bd.query(sql, params);
+
+        return response.status(200).json({
+            sucesso: true,
+            mensagem: 'Gerenciamentos filtrados com sucessos!',
+            dados: rows 
+        });
+    } catch (error) {
+        response.status(500).json({
+        sucesso: false,
+        mensagem: 'Erro ao filtrar gerenciamento.',
+        dados: error.message 
+        });
+      }   
    }
 };       

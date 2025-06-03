@@ -1,17 +1,17 @@
 const express = require('express');
 const router = express.Router();
 
-const usuarioApartamentoController = require('../controllers/usuarioApartamento');
+const usuarioApartamentosController = require('../controllers/usuarioApartamentos');
 
 const ambientesController = require('../controllers/ambientes');
 
-router.get('/usuarioApartamento', usuarioApartamentoController.listarUsuariosApartamento);
+router.get('/usuarioApartamentos', usuarioApartamentosController.listarUsuariosApartamentos);
 
-router.post('/usuarioApartamento', usuarioApartamentoController.cadastrarUsuariosApartamento);
+router.post('/usuarioApartamentos', usuarioApartamentosController.cadastrarUsuariosApartamentos);
 
-router.patch('/usuarioApartamento/:id', usuarioApartamentoController.editarUsuariosApartamento);
+router.patch('/usuarioApartamentos/:id', usuarioApartamentosController.editarUsuariosApartamentos);
 
-router.delete('/usuarioApartamento/:id', usuarioApartamentoController.apagarUsuariosApartamento);
+router.delete('/usuarioApartamentos/:id', usuarioApartamentosController.apagarUsuariosApartamentos);
 
 // ROTA AMBIENTES
 

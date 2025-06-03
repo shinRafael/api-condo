@@ -65,7 +65,7 @@ module.exports = {
   async editarVisitantes(request, response) {
     try {
 
-      const { nome, documento, ap_id, data_visita } = request.body;
+      const { nome, documento, ap_id, data_entrada } = request.body;
       const { id } = request.params;
 
       const sql = `
@@ -75,7 +75,7 @@ module.exports = {
       `;
 
 
-      const values = [nome, documento, ap_id, data_visita, id];
+      const values = [nome, documento, ap_id, data_entrada, id];
       const [result] = await db.query(sql, values);
       
       const atualizaDados = await db.query(sql, values);
@@ -85,7 +85,7 @@ module.exports = {
         nome,
         documento,
         ap_id,
-        data_visita,
+        data_entrada,
       };
 
       if (result.affectedRows === 0) {

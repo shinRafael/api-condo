@@ -1,11 +1,11 @@
 const db = require('../database/connection');
 
 module.exports ={
-    async listarUsuariosApartamento(request, response) {
+    async listarUsuariosApartamentos(request, response) {
         try {
             const sql = `
-                SELECT userap_id, userid, ap_id 
-                FROM usuario_apartamento;
+                SELECT userap_id, user_id, ap_id 
+                FROM usuario_apartamentos;
             `;
     
             const [rows] = await db.query(sql);
@@ -13,7 +13,7 @@ module.exports ={
     
             const dados = rows.map(item => ({
                 id: item.userap_id,
-                usuarioId: item.userid,
+                usuarioId: item.user_id,
                 apartamentoId: item.ap_id
             }));
     
@@ -33,23 +33,23 @@ module.exports ={
         }
     },
     
-    async cadastrarUsuariosApartamento (request, response) {
+    async cadastrarUsuariosApartamentos (request, response) {
         try {
-            const { userid, ap_id } = request.body;
+            const { user_id, ap_id } = request.body;
     
             const sql = `
-                INSERT INTO Usuario_apartamento
-                    (userid, ap_id)
+                INSERT INTO Usuario_apartamentos
+                    (user_id, ap_id)
                 VALUES
                     (?, ?);
             `;
     
-            const values = [userid, ap_id];
+            const values = [user_id, ap_id];
             const [result] = await db.query(sql, values);
     
             const dados = {
                 id: result.insertId,
-                userid,
+                user_id,
                 ap_id,
             };
     
@@ -66,20 +66,20 @@ module.exports ={
             });
         }
     },
-    async editarUsuariosApartamento (request, response) {
+    async editarUsuariosApartamentos (request, response) {
         try {
-            const { userid, ap_id } = request.body;
+            const { user_id, ap_id } = request.body;
 
             const { id } = request.params;
 
             const sql = `
-            UPDATE usuario_apartamento SET
-            userid = ?, ap_id = ?
+            UPDATE usuario_apartamentos SET
+            user_id = ?, ap_id = ?
             WHERE
             userap_id = ?;
             `
 
-            const values = [userid, ap_id, id];
+            const values = [user_id, ap_id, id];
 
             const [result] = await db.query(sql, values);
 
@@ -93,7 +93,7 @@ module.exports ={
 
             const dados = {
                 id,
-                userid,
+                user_id,
                 ap_id,
             };
 
@@ -113,11 +113,11 @@ module.exports ={
             });
         }   
     },
-    async apagarUsuariosApartamento (request, response) {
+    async apagarUsuariosApartamentos (request, response) {
         try {
 
             const { id } = request.params;
-            const sql = `DELETE FROM usuario_apartamento WHERE userap_id = ?;`;
+            const sql = `DELETE FROM usuario_apartamentos WHERE userap_id = ?;`;
             const values = [id];
             const [result] = await db.query(sql, values);
             if (result.affectedRows ===0) {

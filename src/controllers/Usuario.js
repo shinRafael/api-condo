@@ -3,7 +3,7 @@ const bd = require('../database/connection');
 module.exports = {
     async listarUsuario (request, response){
         try{
-               const sql = 'select userid, user_nome, user_email, user_senha, cpf , user_telefone, user_tipo from Usuarios';
+               const sql = 'select user_id, user_nome, user_email, user_senha, cpf , user_telefone, user_tipo from Usuarios';
                 const [rows] = await bd.query(sql);
                 const nItem = rows.length;
         
@@ -23,18 +23,18 @@ module.exports = {
     },
     async cadrastoUsuario (request, response){
         try{
-            const { userid, user_nome, user_email, user_telefone, user_senha, user_tipo, cpf } = request.body;
+            const { user_id, user_nome, user_email, user_telefone, user_senha, user_tipo, cpf } = request.body;
             const user_ativo = 1;
             
             // instrução SQL
             const sql = `
                 INSERT INTO usuarios
-                (userid, user_nome, user_email, user_telefone, user_senha, user_tipo, cpf )
+                (user_id, user_nome, user_email, user_telefone, user_senha, user_tipo, cpf )
                 VALUES
                 (?, ?, ?, ?, ?, ?,?);
             `;
             
-            const values = [userid, user_nome, user_email, user_telefone, user_senha, user_tipo, cpf];
+            const values = [user_id, user_nome, user_email, user_telefone, user_senha, user_tipo, cpf];
             
             const [result] = await bd.query(sql, values);
             
@@ -70,7 +70,7 @@ module.exports = {
           const sql = `
             UPDATE usuarios
             SET user_nome = ?, user_email = ?, user_telefone = ?, user_senha = ?, user_tipo = ?, cpf = ?
-            WHERE userid = ?
+            WHERE user_id = ?
           `;
       
           const values = [user_nome, user_email, user_telefone, user_senha, user_tipo, cpf, id];
@@ -89,7 +89,7 @@ module.exports = {
             sucesso: true,
             nmensagem: 'Usuário atualizado com sucesso.',
             dados: {
-              userid: id,
+              user_id: id,
               user_nome,
               user_email,
               user_telefone,
@@ -110,7 +110,7 @@ module.exports = {
         try {
           const { id } = request.params;
       
-          const sql = 'DELETE FROM usuarios WHERE userid = ?';
+          const sql = 'DELETE FROM usuarios WHERE user_id = ?';
           const values = [id];
       
           const [result] = await bd.query(sql, values);
@@ -126,7 +126,7 @@ module.exports = {
           return response.status(200).json({
             sucesso: true,
             nmensagem: 'Usuário deletado com sucesso.',
-            dados: { userid: id }
+            dados: { user_id: id }
           });
         } catch (error) {
           return response.status(500).json({

@@ -1,12 +1,12 @@
 const db = require('../database/connection');
 
 module.exports = {
-    async listarreserva_ambientes (request, response) {
+    async listarreservas_ambientes (request, response) {
 
         try{
 
             const sql = `
-            SELECT res_id, userap_id, amb_id, res_horario_inicio, res_horario_fim, res_status, res_data_reserva FROM Reserva_Ambientes;
+            SELECT res_id, userap_id, amb_id, res_horario_inicio, res_horario_fim, res_status, res_data_reserva FROM Reservas_Ambientes;
         `;
 
         const [row] = await db.query(sql);
@@ -14,27 +14,27 @@ module.exports = {
     
            return response.status(200).json({
                sucesso: true,
-               mensagem: 'Lista de reserva_ambientes.',
+               mensagem: 'Lista de reservas_ambientes.',
                nItens,
                dados: row
            });
         } catch (error){
            return response.status(500).json({
                sucesso: false,
-               mensagem: 'Erro na listagem de reserva_ambientes.',
+               mensagem: 'Erro na listagem de reservas_ambientes.',
                dados: error.message
            });
         }
     },
 
-    async cadastrarreserva_ambientes (request, response) {
+    async cadastrarreservas_ambientes (request, response) {
         try{
 
          const { userap_id, amb_id, res_horario_inicio, res_horario_fim, res_status, res_data_reserva } = request.body;
          const res_id = 1;
 
          const sql = `
-           INSERT INTO reserva_ambientes
+           INSERT INTO reservas_ambientes
             ( userap_id, amb_id, res_horario_inicio, res_horario_fim, res_status, res_data_reserva)
             VALUES
              (?, ?, ?, ?, ?, ?);
@@ -56,26 +56,26 @@ module.exports = {
 
            return response.status(200).json({
                sucesso: true,
-               mensagem: 'Cadastrar reserva_ambientes.',
+               mensagem: 'Cadastrar reservas_ambientes.',
                dados
            });
         } catch (error){
            return response.status(500).json({
                sucesso: false,
-               mensagem: 'Erro no cadastro de reserva_ambientes.',
+               mensagem: 'Erro no cadastro de reservas_ambientes.',
                dados: error.message
            });
         }
     },
 
-    async editarreserva_ambientes (request, response) {
+    async editarreservas_ambientes (request, response) {
         try{
 
             const { userap_id, amb_id, res_horario_inicio, res_horario_fim, res_status, res_data_reserva } = request.body;
 
             const { id } = request.params;
 
-            const sql = `UPDATE reserva_ambientes Set userap_id = ?, amb_id = ?, res_horario_inicio = ?, res_horario_fim = ?, res_status = ?, res_data_reserva = ? 
+            const sql = `UPDATE reservas_ambientes Set userap_id = ?, amb_id = ?, res_horario_inicio = ?, res_horario_fim = ?, res_status = ?, res_data_reserva = ? 
             WHERE res_id = ?`;
 
             const values = [userap_id, amb_id, res_horario_inicio, res_horario_fim, res_status, res_data_reserva, id];
@@ -102,7 +102,7 @@ module.exports = {
 
            return response.status(200).json({
                sucesso: true,
-               mensagem: `reserva_ambientes ${id} Atualizado com sucesso!`,
+               mensagem: `reservas_ambientes ${id} Atualizado com sucesso!`,
                dados
            });
         } catch (error){
@@ -114,12 +114,12 @@ module.exports = {
         }
     },
 
-    async apagarreserva_ambientes (request, response) {
+    async apagarreservas_ambientes (request, response) {
         try{
 
             const { id } = request.params;
 
-            const sql = `DELETE FROM reserva_ambientes WHERE res_id = ?`;
+            const sql = `DELETE FROM reservas_ambientes WHERE res_id = ?`;
 
             const values = [id];
 
@@ -128,14 +128,14 @@ module.exports = {
             if (result.affectedRows === 0) {
                 return res.status(404).json({
                     sucesso: false,
-                    mensagem: `Reserva_Ambientes ${id} não encontrado!`,
+                    mensagem: `Reservas_Ambientes ${id} não encontrado!`,
                     dados: null
                 });
             }
 
            return response.status(200).json({
                sucesso: true,
-               mensagem: `Reserva_ambientes ${id} excluído com sucesso`,
+               mensagem: `Reservas_ambientes ${id} excluído com sucesso`,
                dados: null
            });
         } catch (error){
@@ -146,4 +146,5 @@ module.exports = {
            });
         }
     },
+    
 }

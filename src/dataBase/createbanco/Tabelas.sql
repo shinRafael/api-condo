@@ -3,7 +3,8 @@ CREATE TABLE Condominio (
     cond_id INT AUTO_INCREMENT PRIMARY KEY,
     cond_nome VARCHAR(60) NOT NULL,
     cond_endereco VARCHAR(120) NOT NULL,
-    cond_cidade VARCHAR(40) NOT NULL
+    cond_cidade VARCHAR(40) NOT NULL,
+    cond_status VARCHAR(20) DEFAULT 'ativo'
 );
 
 -- 2. Usuarios
@@ -20,6 +21,7 @@ CREATE TABLE Usuarios (
 CREATE TABLE Gerenciamento (
     ger_id INT AUTO_INCREMENT PRIMARY KEY,
     cond_id INT NOT NULL,
+    tipo_usuario VARCHAR(50) NOT NULL,
     ger_data DATE NOT NULL,
     ger_descricao VARCHAR(60) NOT NULL,
     ger_valor DECIMAL(10,2) NOT NULL,

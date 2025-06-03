@@ -98,7 +98,7 @@ CREATE TABLE Notificacoes (
 CREATE TABLE Reservas_Ambientes (
     res_id INT AUTO_INCREMENT PRIMARY KEY,
     userap_id INT NOT NULL,
-    ambiid INT NOT NULL,
+    amb_id INT NOT NULL,
     res_horario_inicio TIME NOT NULL,
     res_horario_fim TIME NOT NULL,
     res_status VARCHAR(25) NOT NULL,

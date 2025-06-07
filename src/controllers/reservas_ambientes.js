@@ -146,5 +146,23 @@ module.exports = {
            });
         }
     },
-    
+
+    // //async filtrarreservas_ambientes (request, response) {
+    //     try {
+    //         const sql = `
+    //         SELECT res_id, userap_id, amb_id, res_horario_inicio, res_horario_fim, res_status, res_data_reserva FROM Reservas_Ambientes;
+    //     `;
+
+    //     const valueCheck = [produto, ingrediente];
+    //     const [check] = await bd.query(sqlCheck, valueCheck);
+
+    //     if (check.length > 0) {
+    //         return response.status(409).json({
+    //             sucesso: false,
+    //             mensagem: 'Este ingrediente já está relacionado a este produto.',
+    //             dados: null
+    //         });
+    //     }
+    //     }
+    // },
 }

@@ -104,5 +104,5 @@ CREATE TABLE Reservas_Ambientes (
     res_status VARCHAR(25) NOT NULL,
     res_data_reserva DATE NOT NULL,
     FOREIGN KEY (userap_id) REFERENCES Usuario_Apartamentos(userap_id),
-    FOREIGN KEY (ambiid) REFERENCES Ambientes(amd_id)
+    FOREIGN KEY (ambi_id) REFERENCES Ambientes(amd_id)
 );

@@ -6,7 +6,7 @@ module.exports = {
 
       const sql = `
       SELECT 
-        vst_id, vst_nome, vst_documento, AP_id, vst_data_visita
+        vst_id, vst_nome, vst_documento, AP_id, vst_data_entrada 
         FROM Visitantes 
     `;
 
@@ -30,15 +30,15 @@ module.exports = {
   async cadastrarVisitantes(request, response) {
     try {
 
-      const { nome, documento, ap_id, data_visita } = request.body;
+      const { nome, documento, ap_id, data_entrada } = request.body;
 
       const sql = `
-        INSERT INTO Visitantes (vst_nome, vst_documento, AP_id, vst_data_visita)
+        INSERT INTO Visitantes (vst_nome, vst_documento, AP_id, vst_data_entrada)
         VALUES (?, ?, ?, ?)
         `;
 
 
-        const values = [nome, documento, ap_id, data_visita];
+        const values = [nome, documento, ap_id, data_entrada];
 
         const [result] = await db.query(sql, values);
 
@@ -47,7 +47,7 @@ module.exports = {
           nome,
           documento,
           ap_id,
-          data_visita,
+          data_entrada,
         };
       return response.status(200).json({
         sucesso: true,

@@ -30,15 +30,15 @@ module.exports = {
   async cadastrarVisitantes(request, response) {
     try {
 
-      const { nome, documento, ap_id, data_entrada } = request.body;
+      const { nome, documento, ap_id, data_entrada, data_saida } = request.body;
 
       const sql = `
-        INSERT INTO Visitantes (vst_nome, vst_documento, AP_id, vst_data_entrada)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO Visitantes (vst_nome, vst_documento, AP_id, vst_data_entrada, vst_data_saida)
+        VALUES (?, ?, ?, ?, ?)
         `;
 
 
-        const values = [nome, documento, ap_id, data_entrada];
+        const values = [nome, documento, ap_id, data_entrada, data_saida];
 
         const [result] = await db.query(sql, values);
 
@@ -48,6 +48,7 @@ module.exports = {
           documento,
           ap_id,
           data_entrada,
+          data_saida,
         };
       return response.status(200).json({
         sucesso: true,
@@ -65,17 +66,17 @@ module.exports = {
   async editarVisitantes(request, response) {
     try {
 
-      const { nome, documento, ap_id, data_entrada } = request.body;
+      const { nome, documento, ap_id, data_entrada, data_saida } = request.body;
       const { id } = request.params;
 
       const sql = `
       UPDATE Visitantes
-      SET vst_nome = ?, vst_documento = ?, AP_id = ?, vst_data_visita = ?
+      SET vst_nome = ?, vst_documento = ?, AP_id = ?, vst_data_entrada = ?, vst_data_saida = ?
       WHERE vst_id = ?;
       `;
 
 
-      const values = [nome, documento, ap_id, data_entrada, id];
+      const values = [nome, documento, ap_id, data_entrada, data_saida, id];
       const [result] = await db.query(sql, values);
       
       const atualizaDados = await db.query(sql, values);

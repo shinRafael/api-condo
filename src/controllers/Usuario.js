@@ -3,7 +3,7 @@ const bd = require('../database/connection');
 module.exports = {
     async listarUsuario (request, response){
         try{
-               const sql = 'select user_id, user_nome, user_email, user_senha, cpf , user_telefone, user_tipo from Usuarios';
+               const sql = 'select user_id, user_nome, user_email, user_senha, cpf , user_telefone, user_tipo, cpf from Usuarios';
                 const [rows] = await bd.query(sql);
                 const nItem = rows.length;
         
@@ -31,7 +31,7 @@ module.exports = {
                 INSERT INTO usuarios
                 (user_id, user_nome, user_email, user_telefone, user_senha, user_tipo, cpf )
                 VALUES
-                (?, ?, ?, ?, ?, ?,?);
+                (?, ?, ?, ?, ?, ?, ?);
             `;
             
             const values = [user_id, user_nome, user_email, user_telefone, user_senha, user_tipo, cpf];
@@ -41,9 +41,11 @@ module.exports = {
             const dados = {
                 id: result.insertId,
                 user_nome,
-                cpf,
                 user_email,
+                user_telefone,
+                user_senha,
                 user_tipo,
+                cpf,
             };            
 
 

@@ -79,7 +79,7 @@ module.exports = {
             WHERE 
                 bloc_id = ?;
             `;
-            const values = [cond_id, bloc_nome,];
+            const values = [cond_id, bloc_nome];
 
             const [result] = await db.query(sql,values);
             
@@ -92,7 +92,7 @@ module.exports = {
             }
             const dados = {
                 cond_id,
-                bloc_nome
+                bloc_nome,
             };
 
             return response.status(200).json({

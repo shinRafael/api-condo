@@ -1,33 +1,32 @@
 const bd = require('../database/connection');
 
 module.exports = {
-    async listarcondominio (request, response){
-        try{
+    async listarcondominio (request, response) {
+    try {
+        const sql = `
+            SELECT cond_id, cond_nome, cond_endereco,
+                   cond_cidade, cond_status 
+            FROM condominio;
+        `;
+        const [rows] = await bd.query(sql);
 
-         const sql = `
-             SELECT cond_id, cond_nome, cond_endereco,
-              cond_cidade FROM Condominio;
-         `;
-         const [rows] = await bd.query(sql);
-
-         return response.status(200).json({
-                sucesso: true,
-                mensagem: 'Lista de condominio.',
-                itens: rows.length, 
-                dados: rows
-             })
-        }catch (error){
-            return response.status(550).json({
-                sucesso: false,
-                mensagem: 'Erro na listagem de condominio.',
-                dados: error.message
-             });
-
+        return response.status(200).json({
+            sucesso: true,
+            mensagem: 'Lista de condomínios.',
+            itens: rows.length,
+            dados: rows
+        });
+    } catch (error) {
+        return response.status(500).json({
+            sucesso: false,
+            mensagem: 'Erro na listagem de condomínios.',
+            dados: error.message
+        });
         }
     },
     async cadrastocondominio (request, response){
         try{
-           const { nome, endereco, cidade } = request.body;
+           const { nome, endereco, cidade, status} = request.body;
            const cond_ativo = 1;
 
            // instrução SQL
@@ -35,11 +34,11 @@ module.exports = {
                INSERT INTO condominio
                     (cond_nome, cond_endereco, cond_cidade, cond_status)
                VALUES 
-               (?, ?, ?);
+               (?, ?, ?, ?);
            `;
 
            // definição dos dados a serem inseridos em um array
-           const values = [ nome, endereco, cidade ];
+           const values = [ nome, endereco, cidade, status ];
 
            //execução da instrução sql passando os parâmetros
            const [result] = await bd.query(sql, values);
@@ -50,6 +49,7 @@ module.exports = {
             nome,
             endereco,
             cidade,
+            status
            };
 
          return response.status(200).json({
@@ -60,7 +60,7 @@ module.exports = {
         }catch (error){
             return response.status(550).json({
                 sucesso: false,
-                mensagem: 'Erro na listagem de condominio.',
+                mensagem: 'Erro no cadastro de condominio.',
                 dados: error.message
              });
 
@@ -69,16 +69,16 @@ module.exports = {
     async editarcondominio (request, response){
         try{
             //parâmetros recebidos pelo corpo da requisição 
-            const {  nome, endereco, cidade } = request.body;
+            const {  nome, endereco, cidade, status } = request.body;
             //parâmetro recebido pela URL via params ex: /usuario/1
             const { id } = request.params;
             // instrução SQL
             const sql = `
-               UPDATE condominio SET cond_nome = ?, cond_endereco = ?, cond_cidade = ?
+               UPDATE condominio SET cond_nome = ?, cond_endereco = ?, cond_cidade = ?, cond_status = ?
                WHERE cond_id = ?
            `;
            //preparo do array com dados que serão atualizados 
-           const values = [nome, endereco, cidade, id];
+           const values = [nome, endereco, cidade, status, id];
            //execução e obtenção de confirmação da atualização realizada
            const atualizaDados = await bd.query(sql, values);
         

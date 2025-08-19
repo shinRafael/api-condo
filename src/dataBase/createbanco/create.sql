@@ -3,7 +3,8 @@ CREATE TABLE Condominio (
     cond_id INT AUTO_INCREMENT PRIMARY KEY,
     cond_nome VARCHAR(60) NOT NULL,
     cond_endereco VARCHAR(120) NOT NULL,
-    cond_cidade VARCHAR(40) NOT NULL
+    cond_cidade VARCHAR(40) NOT NULL,
+	cond_status TINYINT(1) NOT NULL DEFAULT 1 -- 1 = ativo, 0 = inativo
 );
 
 -- 2. Usuarios
@@ -16,7 +17,33 @@ CREATE TABLE Usuarios (
     user_tipo VARCHAR(30) NOT NULL
 );
 
--- 3. Gerenciamento
+-- 3. Bloco
+CREATE TABLE Bloco (
+    bloc_id INT AUTO_INCREMENT PRIMARY KEY,
+    cond_id INT NOT NULL,
+    bloc_nome VARCHAR(60) NOT NULL,
+    FOREIGN KEY (cond_id) REFERENCES Condominio(cond_id)
+);
+
+-- 4. Apartamentos
+CREATE TABLE Apartamentos (
+    ap_id INT AUTO_INCREMENT PRIMARY KEY,
+    bloco_id INT NOT NULL,
+    ap_numero VARCHAR(15) NOT NULL,
+    ap_andar INT NOT NULL,
+    FOREIGN KEY (bloco_id) REFERENCES Bloco(bloc_id)
+);
+
+-- 5. Usuario_Apartamentos
+CREATE TABLE Usuario_Apartamentos (
+    userap_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    ap_id INT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES Usuarios(user_id),
+    FOREIGN KEY (ap_id) REFERENCES Apartamentos(ap_id)
+);
+
+-- 6. Gerenciamento
 CREATE TABLE Gerenciamento (
     ger_id INT AUTO_INCREMENT PRIMARY KEY,
     cond_id INT NOT NULL,
@@ -26,15 +53,7 @@ CREATE TABLE Gerenciamento (
     FOREIGN KEY (cond_id) REFERENCES Condominio(cond_id)
 );
 
--- 4. Bloco
-CREATE TABLE Bloco (
-    bloc_id INT AUTO_INCREMENT PRIMARY KEY,
-    cond_id INT NOT NULL,
-    bloc_nome VARCHAR(60) NOT NULL,
-    FOREIGN KEY (cond_id) REFERENCES Condominio(cond_id)
-);
-
--- 5. Ambientes
+-- 7. Ambientes
 CREATE TABLE Ambientes (
     amd_id INT AUTO_INCREMENT PRIMARY KEY,
     cond_id INT NOT NULL,
@@ -44,16 +63,7 @@ CREATE TABLE Ambientes (
     FOREIGN KEY (cond_id) REFERENCES Condominio(cond_id)
 );
 
--- 6. Apartamentos
-CREATE TABLE Apartamentos (
-    ap_id INT AUTO_INCREMENT PRIMARY KEY,
-    bloco_id INT NOT NULL,
-    ap_numero VARCHAR(15) NOT NULL,
-    ap_andar INT NOT NULL,
-    FOREIGN KEY (bloco_id) REFERENCES Bloco(bloc_id)
-);
-
--- 7. Visitantes
+-- 8. Visitantes
 CREATE TABLE Visitantes (
     vst_id INT AUTO_INCREMENT PRIMARY KEY,
     vst_nome VARCHAR(60) NOT NULL,
@@ -63,15 +73,6 @@ CREATE TABLE Visitantes (
     FOREIGN KEY (ap_id) REFERENCES Apartamentos(ap_id)
 );
 
--- 8. Usuario_Apartamentos
-CREATE TABLE Usuario_Apartamentos (
-    userap_id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    ap_id INT NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES Usuarios(user_id),
-    FOREIGN KEY (ap_id) REFERENCES Apartamentos(ap_id)
-);
-select * from gerenciamento;
 -- 9. Mensagens
 CREATE TABLE Mensagens (
     msg_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -105,4 +106,17 @@ CREATE TABLE Reservas_Ambientes (
     res_data_reserva DATE NOT NULL,
     FOREIGN KEY (userap_id) REFERENCES Usuario_Apartamentos(userap_id),
     FOREIGN KEY (amb_id) REFERENCES Ambientes(amd_id)
+);
+
+-- 12. Encomendas
+CREATE TABLE Encomendas (
+    enc_id INT AUTO_INCREMENT PRIMARY KEY,
+    userap_id INT NOT NULL,                 
+    enc_nome_loja VARCHAR(255) NOT NULL,   
+    enc_codigo_rastreio VARCHAR(255),      
+    enc_status VARCHAR(25) NOT NULL,        
+    enc_data_chegada DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, 
+    enc_data_retirada DATETIME,              
+    enc_observacoes TEXT,                    
+    FOREIGN KEY (userap_id) REFERENCES Usuario_Apartamentos(userap_id)
 );

@@ -8,6 +8,7 @@ const RotasLucas = require('./routes-lucas');
 const RotasMarco = require('./routes-marco');
 const RotasMatheus = require('./routes-matheus');
 const RotasOtavio = require('./routes-otavio');
+const RotasEnc = require('./routes-enc');
 
 
 router.use('/', RotasRafael);
@@ -17,6 +18,7 @@ router.use('/', RotasLucas);
 router.use('/', RotasMarco);
 router.use('/', RotasMatheus);
 router.use('/', RotasOtavio);
+router.use('/', RotasEnc);
 
 
 module.exports = router;

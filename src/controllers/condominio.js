@@ -1,28 +1,27 @@
 const bd = require('../database/connection');
 
 module.exports = {
-    async listarcondominio (request, response){
-        try{
+    async listarcondominio (request, response) {
+    try {
+        const sql = `
+            SELECT cond_id, cond_nome, cond_endereco,
+                   cond_cidade, cond_status 
+            FROM condominio;
+        `;
+        const [rows] = await bd.query(sql);
 
-         const sql = `
-             SELECT cond_id, cond_nome, cond_endereco,
-              cond_cidade, cond_status FROM Condominio;
-         `;
-         const [rows] = await bd.query(sql);
-
-         return response.status(200).json({
-                sucesso: true,
-                mensagem: 'Lista de condominio.',
-                itens: rows.length, 
-                dados: rows
-             })
-        }catch (error){
-            return response.status(550).json({
-                sucesso: false,
-                mensagem: 'Erro na listagem de condominio.',
-                dados: error.message
-             });
-
+        return response.status(200).json({
+            sucesso: true,
+            mensagem: 'Lista de condomínios.',
+            itens: rows.length,
+            dados: rows
+        });
+    } catch (error) {
+        return response.status(500).json({
+            sucesso: false,
+            mensagem: 'Erro na listagem de condomínios.',
+            dados: error.message
+        });
         }
     },
     async cadrastocondominio (request, response){
@@ -39,7 +38,7 @@ module.exports = {
            `;
 
            // definição dos dados a serem inseridos em um array
-           const values = [ nome, endereco, cidade, status];
+           const values = [ nome, endereco, cidade, status ];
 
            //execução da instrução sql passando os parâmetros
            const [result] = await bd.query(sql, values);
@@ -50,7 +49,7 @@ module.exports = {
             nome,
             endereco,
             cidade,
-            status,
+            status
            };
 
          return response.status(200).json({
@@ -61,7 +60,7 @@ module.exports = {
         }catch (error){
             return response.status(550).json({
                 sucesso: false,
-                mensagem: 'Erro na listagem de condominio.',
+                mensagem: 'Erro no cadastro de condominio.',
                 dados: error.message
              });
 

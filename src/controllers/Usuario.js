@@ -29,12 +29,12 @@ module.exports = {
             // instrução SQL
             const sql = `
                 INSERT INTO usuarios
-                (user_id, user_nome, user_email, user_telefone, user_senha, user_tipo, cpf )
+                (user_id, user_nome, user_email, user_telefone, user_senha, user_tipo )
                 VALUES
-                (?, ?, ?, ?, ?, ?, ?);
+                (?, ?, ?, ?, ?, ? );
             `;
             
-            const values = [user_id, user_nome, user_email, user_telefone, user_senha, user_tipo, cpf];
+            const values = [user_id, user_nome, user_email, user_telefone, user_senha, user_tipo];
             
             const [result] = await bd.query(sql, values);
             
@@ -45,7 +45,6 @@ module.exports = {
                 user_telefone,
                 user_senha,
                 user_tipo,
-                cpf,
             };            
 
 

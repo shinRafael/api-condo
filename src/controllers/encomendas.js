@@ -1,11 +1,12 @@
 const bd = require('../database/connection');
 
 module.exports = {
+    // LISTAR
     async listarEncomendas(request, response) {
         try {
             const sql = `
                 SELECT enc_id, userap_id, enc_nome_loja, enc_codigo_rastreio,
-                       enc_status, enc_data_chegada, enc_data_retirada, enc_observacoes
+                       enc_status, enc_data_chegada, enc_data_retirada
                 FROM Encomendas;
             `;
             const [rows] = await bd.query(sql);
@@ -25,14 +26,15 @@ module.exports = {
         }
     },
 
-    async cadastrarEncomenda(request, response) {
+    // CADASTRAR
+    async cadastrarEncomendas(request, response) {
         try {
-            const { userap_id, enc_nome_loja, enc_codigo_rastreio, enc_status, enc_data_retirada, enc_observacoes } = request.body;
+            const { userap_id, enc_nome_loja, enc_codigo_rastreio, enc_status, enc_data_retirada } = request.body;
 
             const sql = `
                 INSERT INTO Encomendas
-                    (userap_id, enc_nome_loja, enc_codigo_rastreio, enc_status, enc_data_retirada, enc_observacoes)
-                VALUES (?, ?, ?, ?, ?, ?)
+                    (userap_id, enc_nome_loja, enc_codigo_rastreio, enc_status, enc_data_retirada)
+                VALUES (?, ?, ?, ?, ?)
             `;
 
             const values = [
@@ -40,8 +42,7 @@ module.exports = {
                 enc_nome_loja,
                 enc_codigo_rastreio ?? null,
                 enc_status ?? 'aguardando_retirada',
-                enc_data_retirada ?? null,
-                enc_observacoes ?? null
+                enc_data_retirada ?? null
             ];
 
             const [result] = await bd.query(sql, values);
@@ -55,8 +56,7 @@ module.exports = {
                     enc_nome_loja,
                     enc_codigo_rastreio: enc_codigo_rastreio ?? null,
                     enc_status: enc_status ?? 'aguardando_retirada',
-                    enc_data_retirada: enc_data_retirada ?? null,
-                    enc_observacoes: enc_observacoes ?? null
+                    enc_data_retirada: enc_data_retirada ?? null
                 }
             });
         } catch (error) {
@@ -68,14 +68,14 @@ module.exports = {
         }
     },
 
-    async editarEncomenda(request, response) {
+    async editarEncomendas(request, response) {
         try {
             const { id } = request.params;
-            const { enc_nome_loja, enc_codigo_rastreio, enc_status, enc_data_retirada, enc_observacoes } = request.body;
+            const { enc_nome_loja, enc_codigo_rastreio, enc_status, enc_data_retirada } = request.body;
 
             const sql = `
                 UPDATE Encomendas
-                SET enc_nome_loja = ?, enc_codigo_rastreio = ?, enc_status = ?, enc_data_retirada = ?, enc_observacoes = ?
+                SET enc_nome_loja = ?, enc_codigo_rastreio = ?, enc_status = ?, enc_data_retirada = ?
                 WHERE enc_id = ?
             `;
 
@@ -84,7 +84,6 @@ module.exports = {
                 enc_codigo_rastreio ?? null,
                 enc_status ?? 'aguardando_retirada',
                 enc_data_retirada ?? null,
-                enc_observacoes ?? null,
                 id
             ];
 
@@ -112,7 +111,7 @@ module.exports = {
         }
     },
 
-    async apagarEncomenda(request, response) {
+    async apagarEncomendas(request, response) {
         try {
             const { id } = request.params;
             const sql = 'DELETE FROM Encomendas WHERE enc_id = ?';

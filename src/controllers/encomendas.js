@@ -1,11 +1,12 @@
 const bd = require('../database/connection');
 
 module.exports = {
+    // LISTAR
     async listarEncomendas(request, response) {
         try {
             const sql = `
                 SELECT enc_id, userap_id, enc_nome_loja, enc_codigo_rastreio,
-                       enc_status, enc_data_chegada, enc_data_chegada, enc_data_retirada
+                       enc_status, enc_data_chegada, enc_data_retirada
                 FROM Encomendas;
             `;
             const [rows] = await bd.query(sql);
@@ -25,14 +26,15 @@ module.exports = {
         }
     },
 
+    // CADASTRAR
     async cadastrarEncomendas(request, response) {
         try {
-            const { userap_id, enc_nome_loja, enc_codigo_rastreio, enc_status, enc_data_chegada, enc_data_retirada } = request.body;
+            const { userap_id, enc_nome_loja, enc_codigo_rastreio, enc_status, enc_data_retirada } = request.body;
 
             const sql = `
                 INSERT INTO Encomendas
-                    (userap_id, enc_nome_loja, enc_codigo_rastreio, enc_status, enc_data_chegada, enc_data_retirada)
-                VALUES (?, ?, ?, ?, ?, ?)
+                    (userap_id, enc_nome_loja, enc_codigo_rastreio, enc_status, enc_data_retirada)
+                VALUES (?, ?, ?, ?, ?)
             `;
 
             const values = [
@@ -40,7 +42,6 @@ module.exports = {
                 enc_nome_loja,
                 enc_codigo_rastreio ?? null,
                 enc_status ?? 'aguardando_retirada',
-                enc_data_chegada ?? null,
                 enc_data_retirada ?? null
             ];
 
@@ -55,7 +56,6 @@ module.exports = {
                     enc_nome_loja,
                     enc_codigo_rastreio: enc_codigo_rastreio ?? null,
                     enc_status: enc_status ?? 'aguardando_retirada',
-                    enc_data_chegada: enc_data_retirada ?? null,
                     enc_data_retirada: enc_data_retirada ?? null
                 }
             });
@@ -71,11 +71,11 @@ module.exports = {
     async editarEncomendas(request, response) {
         try {
             const { id } = request.params;
-            const { enc_nome_loja, enc_codigo_rastreio, enc_status, enc_data_chegada, enc_data_retirada} = request.body;
+            const { enc_nome_loja, enc_codigo_rastreio, enc_status, enc_data_retirada } = request.body;
 
             const sql = `
                 UPDATE Encomendas
-                SET enc_nome_loja = ?, enc_codigo_rastreio = ?, enc_status = ?, enc_data_chegada = ?, enc_data_retirada = ?
+                SET enc_nome_loja = ?, enc_codigo_rastreio = ?, enc_status = ?, enc_data_retirada = ?
                 WHERE enc_id = ?
             `;
 
@@ -83,7 +83,6 @@ module.exports = {
                 enc_nome_loja,
                 enc_codigo_rastreio ?? null,
                 enc_status ?? 'aguardando_retirada',
-                enc_data_chegada ?? null,
                 enc_data_retirada ?? null,
                 id
             ];

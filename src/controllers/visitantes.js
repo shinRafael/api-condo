@@ -6,7 +6,7 @@ module.exports = {
 
       const sql = `
       SELECT 
-        vst_id, vst_nome, vst_documento, AP_id, vst_data_entrada 
+        vst_id, vst_nome, vst_documento, AP_id, vst_data_visita 
         FROM Visitantes 
     `;
 
@@ -33,7 +33,7 @@ module.exports = {
       const { nome, documento, ap_id, data_entrada, data_saida } = request.body;
 
       const sql = `
-        INSERT INTO Visitantes (vst_nome, vst_documento, AP_id, vst_data_entrada, vst_data_saida)
+        INSERT INTO Visitantes (vst_nome, vst_documento, AP_id, vst_data_visita, vst_data_saida)
         VALUES (?, ?, ?, ?, ?)
         `;
 
@@ -71,7 +71,7 @@ module.exports = {
 
       const sql = `
       UPDATE Visitantes
-      SET vst_nome = ?, vst_documento = ?, AP_id = ?, vst_data_entrada = ?, vst_data_saida = ?
+      SET vst_nome = ?, vst_documento = ?, AP_id = ?, vst_data_visita = ?, vst_data_saida = ?
       WHERE vst_id = ?;
       `;
 

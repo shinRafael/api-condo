@@ -4,8 +4,8 @@ module.exports ={
     async listarAmbientes(request, response) {
         try {
             const sql = `
-                SELECT amb_id, cond_id, amb_nome, 
-                       amb_descricao, amb_capacidade
+                SELECT amd_id, cond_id, amd_nome, 
+                       amd_descricao, amd_capacidade
                 FROM ambientes;
             `;
     
@@ -41,7 +41,7 @@ module.exports ={
     
             const sql = `
                 INSERT INTO ambientes
-                    (cond_id, amb_nome, amb_descricao, amb_capacidade)
+                    (cond_id, amd_nome, amd_descricao, amd_capacidade)
                 VALUES
                     (?, ?, ?, ?);
             `;
@@ -77,8 +77,8 @@ module.exports ={
 
         const sql = `
             UPDATE ambientes SET
-            amb_nome = ?, amb_descricao = ?, amb_capacidade = ?
-            WHERE amb_id = ?;
+            amd_nome = ?, amd_descricao = ?, amd_capacidade = ?
+            WHERE amd_id = ?;
         `;
 
         const values = [nome, descricao, capacidade, id];
@@ -119,7 +119,7 @@ module.exports ={
 
             const { id } = request.params;
 
-            const sql = `DELETE FROM ambientes WHERE amb_id = ?;`;
+            const sql = `DELETE FROM ambientes WHERE amd_id = ?;`;
             const values = [id];
 
             const [result] = await db.query(sql, values);

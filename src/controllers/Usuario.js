@@ -3,7 +3,10 @@ const bd = require('../database/connection');
 module.exports = {
     async listarUsuario (request, response){
         try{
-               const sql = 'select user_id, user_nome, user_email, user_senha, cpf , user_telefone, user_tipo, cpf from Usuarios';
+                const sql = `
+        SELECT user_id, user_nome, user_email, user_senha, user_telefone, user_tipo
+        FROM Usuarios
+      `;
                 const [rows] = await bd.query(sql);
                 const nItem = rows.length;
         
@@ -23,7 +26,7 @@ module.exports = {
     },
     async cadrastoUsuario (request, response){
         try{
-            const { user_id, user_nome, user_email, user_telefone, user_senha, user_tipo, cpf } = request.body;
+            const { user_id, user_nome, user_email, user_telefone, user_senha, user_tipo } = request.body;
             const user_ativo = 1;
             
             // instrução SQL
@@ -95,7 +98,6 @@ module.exports = {
               user_email,
               user_telefone,
               user_tipo,
-              cpf
             }
           });
         } catch (error) {

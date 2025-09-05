@@ -6,7 +6,7 @@ module.exports = {
 
       const sql = `
       SELECT 
-        vst_id, vst_nome, vst_documento, AP_id, vst_data_visita 
+        vst_id, vst_nome, vst_documento, AP_id, vst_data_visita, vst_data_saida
         FROM Visitantes 
     `;
 
@@ -30,15 +30,15 @@ module.exports = {
   async cadastrarVisitantes(request, response) {
     try {
 
-      const { nome, documento, ap_id, data_entrada, data_saida } = request.body;
+      const { nome, documento, ap_id, data_visita, data_saida } = request.body;
 
       const sql = `
-        INSERT INTO Visitantes (vst_nome, vst_documento, AP_id, vst_data_visita, vst_data_saida)
+        INSERT INTO Visitantes (vst_nome, vst_documento, ap_id, vst_data_visita, vst_data_saida)
         VALUES (?, ?, ?, ?, ?)
         `;
 
 
-        const values = [nome, documento, ap_id, data_entrada, data_saida];
+        const values = [nome, documento, ap_id, data_visita, data_saida];
 
         const [result] = await db.query(sql, values);
 
@@ -47,7 +47,7 @@ module.exports = {
           nome,
           documento,
           ap_id,
-          data_entrada,
+          data_visita,
           data_saida,
         };
       return response.status(200).json({
@@ -64,51 +64,49 @@ module.exports = {
     }
   },
   async editarVisitantes(request, response) {
-    try {
+  try {
+    const { nome, documento, ap_id, data_visita } = request.body;
+    const { id } = request.params;
 
-      const { nome, documento, ap_id, data_entrada, data_saida } = request.body;
-      const { id } = request.params;
-
-      const sql = `
-      UPDATE Visitantes
-      SET vst_nome = ?, vst_documento = ?, AP_id = ?, vst_data_visita = ?, vst_data_saida = ?
-      WHERE vst_id = ?;
-      `;
-
-
-      const values = [nome, documento, ap_id, data_entrada, data_saida, id];
-      const [result] = await db.query(sql, values);
-      
-      const atualizaDados = await db.query(sql, values);
-
-      const dados = {
-        id,
-        nome,
-        documento,
-        ap_id,
-        data_entrada,
-      };
-
-      if (result.affectedRows === 0) {
-        return response.status(404).json({
-          sucesso: false,
-          message: `Visitante ${id} não encontrado!`,
-          dados: null,
-        });
-      }
-      return response.status(200).json({
-        sucesso: true,
-        message: `Visitante ${id} atualizado com sucesso!`, 
-        dados
-      });
-  } catch (error) {
-      return response.status(500).json({
+    // Validação simples de campos obrigatórios
+    if (!nome || !documento || !ap_id || !data_visita) {
+      return response.status(400).json({
         sucesso: false,
-        message: "Erro na edição de visitantes",
-        dados: error.message,
+        message: "Todos os campos são obrigatórios!"
       });
     }
-  },
+
+    const sql = `
+      UPDATE Visitantes
+      SET vst_nome = ?, vst_documento = ?, ap_id = ?, vst_data_visita = ?
+      WHERE vst_id = ?;
+    `;
+
+    const values = [nome, documento, ap_id, data_visita, id];
+    const [result] = await db.query(sql, values);
+
+    if (result.affectedRows === 0) {
+      return response.status(404).json({
+        sucesso: false,
+        message: `Visitante ${id} não encontrado!`,
+        dados: null,
+      });
+    }
+
+    return response.status(200).json({
+      sucesso: true,
+      message: `Visitante ${id} atualizado com sucesso!`, 
+      dados: { id, nome, documento, ap_id, data_visita }
+    });
+
+  } catch (error) {
+    return response.status(500).json({
+      sucesso: false,
+      message: "Erro na edição de visitantes",
+      dados: error.message,
+    });
+  }
+},
   async apagarVisitantes(request, response) {
     try {
 
@@ -129,9 +127,9 @@ module.exports = {
         });
       }
 
-      return response.status(200).json({
+      return response.status(200).json({ 
         sucesso: true,
-        message: `Visitante ${id} removido com sucesso!`, 
+        message: `Visitante ${nome} removido com sucesso!`, 
         dados: null,
       });
   } catch (error) {

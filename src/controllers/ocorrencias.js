@@ -1,41 +1,64 @@
 const db = require('../database/connection');
 
 module.exports = {
-    // LISTAR
-    async listarocorrencias(request, response) {
+    // FUNÇÃO PARA O SÍNDICO (WEB) - Lista tudo
+    async listarTodasOcorrencias(request, response) {
         try {
             const sql = `
                 SELECT 
-                    oco_id, 
-                    userap_id, 
-                    oco_protocolo, 
-                    oco_categoria, 
-                    oco_descricao, 
-                    oco_localizacao, 
-                    oco_data, 
-                    oco_status,
-                    oco_prioridade,
-                    oco_imagem
+                    oco_id, userap_id, oco_protocolo, oco_categoria, oco_descricao, 
+                    oco_localizacao, oco_data, oco_status, oco_prioridade, oco_imagem
                 FROM ocorrencias;
             `;
 
             const [rows] = await db.query(sql);
-            const nItens = rows.length;
-
+            
             return response.status(200).json({
                 sucesso: true,
-                mensagem: 'Lista de ocorrências.',
-                nItens,
+                mensagem: 'Lista de todas as ocorrências.',
+                nItens: rows.length,
                 dados: rows
             });
         } catch (error) {
             return response.status(500).json({
                 sucesso: false,
-                mensagem: 'Erro na listagem de ocorrências.',
+                mensagem: 'Erro ao listar ocorrências.',
                 dados: error.message
             });
         }
     },
+
+    // FUNÇÃO PARA O MORADOR (APP) - Lista por userap_id
+    async listarOcorrenciasDoMorador(request, response) {
+        try {
+            const { userap_id } = request.params; // Pega o ID da URL
+
+            const sql = `
+                SELECT 
+                    oco_id, userap_id, oco_protocolo, oco_categoria, oco_descricao, 
+                    oco_localizacao, oco_data, oco_status, oco_prioridade, oco_imagem
+                FROM ocorrencias
+                WHERE userap_id = ?;
+            `;
+            
+            const values = [userap_id];
+            const [rows] = await db.query(sql, values);
+
+            return response.status(200).json({
+                sucesso: true,
+                mensagem: 'Lista de ocorrências do morador.',
+                nItens: rows.length,
+                dados: rows
+            });
+        } catch (error) {
+            return response.status(500).json({
+                sucesso: false,
+                mensagem: 'Erro ao listar ocorrências do morador.',
+                dados: error.message
+            });
+        }
+    },
+
 
     // CADASTRAR
     async cadastrarocorrencias(request, response) {

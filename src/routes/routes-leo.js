@@ -3,6 +3,10 @@ const router = express.Router();
 
 const UsuarioController = require('../controllers/Usuario');
 
+// Rota para login (método POST)
+router.post('/Usuario/login', UsuarioController.loginUsuario);
+
+// Rotas existentes para CRUD de Usuários
 router.get('/Usuario', UsuarioController.listarUsuario);
 router.post('/Usuario', UsuarioController.cadrastoUsuario);
 router.patch('/Usuario/:id', UsuarioController.editarUsuario);

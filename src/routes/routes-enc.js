@@ -12,7 +12,10 @@ router.post('/encomendas', encomendasController.cadastrarEncomendas);
 router.patch('/encomendas/:id', encomendasController.editarEncomendas);
 router.delete('/encomendas/:id', encomendasController.apagarEncomendas);
 
-router.get('/ocorrencias', ocorrenciasController.listarocorrencias);
+// ROTA PARA O SÍNDICO (WEB): Busca todas as ocorrências
+router.get('/ocorrencias', ocorrenciasController.listarTodasOcorrencias);
+// ROTA PARA O MORADOR (APP): Busca ocorrências de um morador específico
+router.get('/ocorrencias/:userap_id', ocorrenciasController.listarOcorrenciasDoMorador);
 router.post('/ocorrencias', ocorrenciasController.cadastrarocorrencias);
 router.patch('/ocorrencias/:id', ocorrenciasController.editarocorrencias);
 router.delete('/ocorrencias/:id', ocorrenciasController.apagarocorrencias);

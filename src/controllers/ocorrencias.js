@@ -61,29 +61,47 @@ module.exports = {
 
 
     // CADASTRAR
+// ... (dentro de module.exports)
+
     async cadastrarocorrencias(request, response) {
         try {
-            const { userap_id, oco_protocolo, oco_categoria, oco_descricao, oco_localizacao, oco_data, oco_status, oco_prioridade, oco_imagem } = request.body;
+            // 1. Pega os dados enviados pelo aplicativo. Note que não pegamos mais o 'oco_protocolo'.
+            const { userap_id, oco_categoria, oco_descricao, oco_localizacao, oco_prioridade, oco_imagem } = request.body;
+            const anoAtual = new Date().getFullYear();
 
-            const sql = `
+            // 2. Busca no banco de dados para descobrir o número da última ocorrência do ano.
+            const sqlBusca = `
+                SELECT COUNT(*) as total_no_ano FROM ocorrencias 
+                WHERE YEAR(oco_data) = ?;
+            `;
+            const [resultadoBusca] = await db.query(sqlBusca, [anoAtual]);
+            const proximoNumero = resultadoBusca[0].total_no_ano + 1;
+
+            // 3. Formata o novo protocolo com 4 dígitos (ex: 0001, 0015, etc.)
+            const protocoloFormatado = `OCO-${anoAtual}-${proximoNumero.toString().padStart(4, '0')}`;
+
+            // 4. Insere a ocorrência no banco com o protocolo gerado pela API.
+            const sqlInsert = `
                 INSERT INTO ocorrencias 
                 (userap_id, oco_protocolo, oco_categoria, oco_descricao, oco_localizacao, oco_data, oco_status, oco_prioridade, oco_imagem)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+                VALUES (?, ?, ?, ?, ?, NOW(), ?, ?, ?);
             `;
+            // Usamos NOW() para pegar a data e hora exatas do servidor.
 
-            const values = [userap_id, oco_protocolo, oco_categoria, oco_descricao, oco_localizacao, oco_data, oco_status, oco_prioridade, oco_imagem];
+            const values = [userap_id, protocoloFormatado, oco_categoria, oco_descricao, oco_localizacao, "Enviada", oco_prioridade, oco_imagem];
 
-            const [result] = await db.query(sql, values);
+            const [result] = await db.query(sqlInsert, values);
 
+            // 5. Retorna a resposta de sucesso com todos os dados, incluindo o novo protocolo.
             const dados = {
                 oco_id: result.insertId,
                 userap_id,
-                oco_protocolo,
+                oco_protocolo: protocoloFormatado, // Retorna o protocolo que foi gerado
                 oco_categoria,
                 oco_descricao,
                 oco_localizacao,
-                oco_data,
-                oco_status,
+                oco_data: new Date(), // Retorna a data atual
+                oco_status: "Enviada",
                 oco_prioridade,
                 oco_imagem
             };
@@ -101,6 +119,8 @@ module.exports = {
             });
         }
     },
+
+    // ... (suas outras funções, como listar, editar, etc., continuam aqui)
 
     // EDITAR
     async editarocorrencias(request, response) {

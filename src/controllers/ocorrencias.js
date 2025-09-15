@@ -88,7 +88,7 @@ module.exports = {
             `;
             // Usamos NOW() para pegar a data e hora exatas do servidor.
 
-            const values = [userap_id, protocoloFormatado, oco_categoria, oco_descricao, oco_localizacao, "Enviada", oco_prioridade, oco_imagem];
+            const values = [userap_id, protocoloFormatado, oco_categoria, oco_descricao, oco_localizacao, "Aberta", oco_prioridade, oco_imagem];
 
             const [result] = await db.query(sqlInsert, values);
 

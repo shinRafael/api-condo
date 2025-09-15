@@ -1,4 +1,4 @@
-const bd = require('../database/connection');
+const bd = require('../dataBase/connection');
 
 module.exports = {
     async listarUsuario (request, response){

@@ -1,4 +1,4 @@
-const db = require('../database/connection');
+const db = require('../dataBase/connection');
 
 module.exports = {
     // FUNÇÃO PARA O SÍNDICO (WEB) - Lista tudo

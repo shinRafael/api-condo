@@ -101,7 +101,7 @@ module.exports = {
                 oco_descricao,
                 oco_localizacao,
                 oco_data: new Date(), // Retorna a data atual
-                oco_status: "Enviada",
+                oco_status: "Aberta",
                 oco_prioridade,
                 oco_imagem
             };

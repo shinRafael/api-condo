@@ -1,8 +1,8 @@
 const bd = require('../dataBase/connection');
 
 module.exports = {
-    // LISTAR
-    async listarEncomendas(request, response) {
+    // FUNÇÃO PARA O SÍNDICO (WEB) - Lista tudo
+    async listarTodasEncomendas(request, response) {
         try {
             const sql = `
                 SELECT enc_id, userap_id, enc_nome_loja, enc_codigo_rastreio,
@@ -13,8 +13,8 @@ module.exports = {
 
             return response.status(200).json({
                 sucesso: true,
-                mensagem: 'Lista de encomendas.',
-                itens: rows.length,
+                mensagem: 'Lista de todas as encomendas.',
+                nItens: rows.length,
                 dados: rows
             });
         } catch (error) {
@@ -25,6 +25,36 @@ module.exports = {
             });
         }
     },
+
+    // FUNÇÃO PARA O MORADOR (APP) - Lista por userap_id
+    async listarEncomendasDoMorador(request, response) {
+        try {
+            const { userap_id } = request.params;
+            const sql = `
+                SELECT enc_id, userap_id, enc_nome_loja, enc_codigo_rastreio,
+                       enc_status, enc_data_chegada, enc_data_retirada
+                FROM Encomendas 
+                WHERE userap_id = ? 
+                ORDER BY enc_data_chegada DESC;
+            `;
+            const values = [userap_id];
+            const [rows] = await bd.query(sql, values);
+
+            return response.status(200).json({
+                sucesso: true,
+                mensagem: 'Lista de encomendas do morador.',
+                nItens: rows.length,
+                dados: rows
+            });
+        } catch (error) {
+            return response.status(500).json({
+                sucesso: false,
+                mensagem: 'Erro ao listar encomendas do morador.',
+                dados: error.message
+            });
+        }
+    },
+
 
     // CADASTRAR
     async cadastrarEncomendas(request, response) {

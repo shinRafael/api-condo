@@ -7,7 +7,12 @@ const ocorrenciasController = require('../controllers/ocorrencias')
 
 const documentosController = require('../controllers/documentos')
 
-router.get('/encomendas', encomendasController.listarEncomendas);
+// ROTA PARA O SÍNDICO (WEB)
+router.get('/encomendas', encomendasController.listarTodasEncomendas);
+
+// ROTA PARA O MORADOR (APP)
+router.get('/encomendas/:userap_id', encomendasController.listarEncomendasDoMorador);
+
 router.post('/encomendas', encomendasController.cadastrarEncomendas);
 router.patch('/encomendas/:id', encomendasController.editarEncomendas);
 router.delete('/encomendas/:id', encomendasController.apagarEncomendas);

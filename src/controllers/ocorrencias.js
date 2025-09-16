@@ -123,18 +123,33 @@ module.exports = {
     // ... (suas outras funções, como listar, editar, etc., continuam aqui)
 
     // EDITAR
+    // EDITAR
     async editarocorrencias(request, response) {
         try {
-            const { userap_id, oco_protocolo, oco_categoria, oco_descricao, oco_localizacao, oco_data, oco_status, oco_prioridade, oco_imagem } = request.body;
             const { id } = request.params;
+            const updatedFields = request.body;
+
+            // Construir a parte SET da consulta SQL dinamicamente
+            const fieldsToUpdate = Object.keys(updatedFields);
+            if (fieldsToUpdate.length === 0) {
+                return response.status(400).json({
+                    sucesso: false,
+                    mensagem: "Nenhum campo para atualizar foi fornecido.",
+                    dados: null
+                });
+            }
+
+            const setClause = fieldsToUpdate.map(field => `${field} = ?`).join(', ');
+            const values = fieldsToUpdate.map(field => updatedFields[field]);
 
             const sql = `
-                UPDATE ocorrencias 
-                SET userap_id = ?, oco_protocolo = ?, oco_categoria = ?, oco_descricao = ?, oco_localizacao = ?, oco_data = ?, oco_status = ?, oco_prioridade = ?, oco_imagem = ?
+                UPDATE ocorrencias
+                SET ${setClause}
                 WHERE oco_id = ?;
             `;
 
-            const values = [userap_id, oco_protocolo, oco_categoria, oco_descricao, oco_localizacao, oco_data, oco_status, oco_prioridade, oco_imagem, id];
+            values.push(id);
+
             const [result] = await db.query(sql, values);
 
             if (result.affectedRows === 0) {
@@ -145,18 +160,8 @@ module.exports = {
                 });
             }
 
-            const dados = {
-                oco_id: id,
-                userap_id,
-                oco_protocolo,
-                oco_categoria,
-                oco_descricao,
-                oco_localizacao,
-                oco_data,
-                oco_status,
-                oco_prioridade,
-                oco_imagem
-            };
+            // Apenas retorna os campos atualizados para evitar a necessidade de outra busca
+            const dados = { oco_id: id, ...updatedFields };
 
             return response.status(200).json({
                 sucesso: true,

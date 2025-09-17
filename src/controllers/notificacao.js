@@ -100,18 +100,18 @@ module.exports = {
             let listaDeUserApIds = [];
 
             if (alvo.tipo === 'todos') {
-                const [rows] = await db.query('SELECT userap_id FROM Usuario_Apartamentos');
+                const [rows] = await db.query('SELECT userap_id FROM usuario_Apartamentos');
                 listaDeUserApIds = rows.map(r => r.userap_id);
             } else if (alvo.tipo === 'bloco' && alvo.id) {
                 const sql = `
-                    SELECT ua.userap_id FROM Usuario_Apartamentos ua
+                    SELECT ua.userap_id FROM usuario_Apartamentos ua
                     JOIN Apartamentos a ON ua.ap_id = a.ap_id
                     WHERE a.bloco_id = ?;
                 `;
                 const [rows] = await db.query(sql, [alvo.id]);
                 listaDeUserApIds = rows.map(r => r.userap_id);
             } else if (alvo.tipo === 'apartamento' && alvo.ids && alvo.ids.length > 0) {
-                 const sql = `SELECT userap_id FROM Usuario_Apartamentos WHERE ap_id IN (?);`;
+                 const sql = `SELECT userap_id FROM usuario_Apartamentos WHERE ap_id IN (?);`;
                  const [rows] = await db.query(sql, [alvo.ids]);
                  listaDeUserApIds = rows.map(r => r.userap_id);
             }

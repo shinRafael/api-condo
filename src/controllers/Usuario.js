@@ -155,7 +155,7 @@ module.exports = {
                 FROM 
                     Usuarios u
                 JOIN 
-                    Usuario_Apartamento ua ON u.user_id = ua.user_id
+                    Usuario_Apartamentos ua ON u.user_id = ua.user_id
                 WHERE 
                     u.user_email = ? AND u.user_senha = ?;
             `;

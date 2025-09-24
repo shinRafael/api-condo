@@ -1,32 +1,41 @@
-SELECT cond_id, cond_nome, cond_endereco, cond_cidade FROM Condominio;
+-- 1
+select * from condominio;
 
--- Bloco
-SELECT bloc_id, cond_id, bloc_nome FROM bloco;
+-- 2
+select * from usuarios;
 
--- Apartamentos
-SELECT ap_id, bloco_id, ap_numero, ap_andar FROM Apartamentos;
+-- 3
+select * from gerenciamento;
 
--- Usuarios
-SELECT user_id, user_nome, user_email, user_senha, user_telefone, user_tipo from usuarios;
+-- 4
+select * from bloco;
 
--- Usuario_Apartamentos
-SELECT userid, ap_id FROM Usuario_Apartamentos;
+-- 5
+select * from ambientes;
 
--- Gerenciamento
-SELECT ger_id, cond_id, ger_data, ger_descricao, ger_valor FROM Gerenciamento;
+-- 6
+select * from apartamentos;
 
+-- 7
+select * from visitantes;
 
--- Mensagens
-SELECT msg_id, cond_id, userap_id msg_mensagem, msg_data_envio msg_status FROM Mensagens;
+-- 8
+select * from usuario_apartamento;
 
--- Ambientes
-SELECT cond_id, amb_descricao, amb_Nome, amb_capacidade FROM Ambientes;
+-- 9
+select * from encomendas;
 
--- Reservas_Ambientes
-SELECT res_id, userap_id, ambiid, res_horario_inicio, res_horario_fim, res_status, res_data_reserva FROM Reservas_Ambientes;
+-- 10
+select * from mensagens;
 
--- Visitantes
-SELECT vst_id, vst_nome, vst_documento, AP_id, vst_data_visita FROM Visitantes;
+-- 11
+select * from notificacoes;
 
--- Notificacoes
-SELECT not_id, userAP_id, not_mensagem, not_data_envio, not_lida FROM Notificacoes;
+-- 12
+select * from reservas_ambientes;
+
+-- 13
+select * from ocorrencias;
+
+-- 14
+select * from documentos;

@@ -3,6 +3,19 @@ const router = express.Router();
 
 const NotificacaoController = require('../controllers/notificacao');
 
+// ==================================================================
+// ROTAS PARA O PAINEL WEB (VISÃO AGRUPADA)
+// ==================================================================
+
+// Rota para buscar a lista de envios de forma agrupada
+router.get('/notificacoes/envios', NotificacaoController.listarEnviosAgrupados);
+
+// Rota para editar um grupo inteiro de notificações
+router.patch('/notificacoes/envio', NotificacaoController.editarEnvioAgrupado);
+
+// Rota para apagar um grupo inteiro de notificações
+router.delete('/notificacoes/envio', NotificacaoController.apagarEnvioAgrupado);
+
 // Rota para o DASHBOARD do app (Avisos Urgentes)
 router.get('/notificacoes/importantes', NotificacaoController.listarAvisosImportantes);
 

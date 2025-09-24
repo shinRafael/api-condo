@@ -3,14 +3,12 @@ const db = require('../dataBase/connection');
 module.exports = {
     async listablocos (request, response) {
         try {
-
             const sql = `SELECT bloc_id, 
-            cond_id, bloc_nome FROM bloco;
+            cond_id, bloc_nome FROM Bloco;
             `;
            
-
             const [row] = await db.query(sql);
-            const nItens = row.lenght;
+            const nItens = row.length;
             
             return response.status(200).json({
                 sucesso: true,
@@ -27,26 +25,21 @@ module.exports = {
             });
         }   
     },
-
     async cadastrarblocos (request, response) {
         try {
             const { cond_id, bloc_nome } = request.body;
             const bloc_ativa = 1;
 
-            //introdução SQL
             const sql = `
-            INSERT INTO bloco
+            INSERT INTO Bloco
                 (cond_id, bloc_nome)
             VALUES
                 (?, ?);
             `;
             
-            // definição dos dados a serem inseridos em um array
             const values = [cond_id, bloc_nome];
-            //execução da instrução sql passando os parametros
             const [result] = await db.query(sql,values);
-            //indentificação do ID do registro inserido
-                const dados = {
+            const dados = {
                 id: result.insertID,
                 cond_id,
                 bloc_nome                    
@@ -70,17 +63,15 @@ module.exports = {
     async editarblocos (request, response) {
         try {
             const { cond_id, bloc_nome } = request.body;
-
             const { id } = request.params;
 
             const sql = `
-            UPDATE bloco SET
+            UPDATE Bloco SET
                 cond_id = ?, bloc_nome = ? 
             WHERE 
                 bloc_id = ?;
             `;
-            const values = [cond_id, bloc_nome];
-
+            const values = [cond_id, bloc_nome, id];
             const [result] = await db.query(sql,values);
             
             if (result.affectedRows == 0) {
@@ -112,7 +103,7 @@ module.exports = {
     async apagarblocos (request, response) {
         try {
             const { id } = request.params;
-            const sql = `DELETE FROM bloco WHERE bloc_id = ?;`;
+            const sql = `DELETE FROM Bloco WHERE bloc_id = ?;`;
             const values = [id];
             const [result] = await db.query(sql,values);
             if (result.affectedRows === 0) {
@@ -138,5 +129,3 @@ module.exports = {
         }   
     },
 }
-
-  

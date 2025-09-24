@@ -4,15 +4,16 @@ module.exports = {
     async listargerenciamento(request, response) {
         try {
             const sql = `
-                SELECT 
-                    ger.ger_id, 
-                    ger.cond_id, 
-                    cond.cond_nome, 
-                    DATE_FORMAT(ger.ger_data, '%d/%m/%Y') AS ger_data,
-                    ger.ger_descricao, 
-                    CONCAT('R$ ', FORMAT(ger.ger_valor, 2, 'pt_BR')) AS ger_valor
-                FROM gerenciamento ger 
-                INNER JOIN condominio cond ON ger.cond_id = cond.cond_id;
+     SELECT 
+  ger.ger_id,
+  ger.cond_id,
+  cond.cond_nome,
+  DATE_FORMAT(ger.ger_data, '%d/%m/%Y') AS ger_data,
+  ger.ger_descricao,
+  ger.ger_valor -- valor puro (DECIMAL ou FLOAT)
+FROM gerenciamento ger
+INNER JOIN condominio cond 
+  ON ger.cond_id = cond.cond_id;
             `;
             const [rows] = await bd.query(sql);
 

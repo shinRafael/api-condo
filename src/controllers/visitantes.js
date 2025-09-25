@@ -1,141 +1,204 @@
 const db = require('../dataBase/connection');
+const { v4: uuidv4 } = require('uuid'); // Importe uma biblioteca para gerar IDs únicos
 
 module.exports = {
+  /**
+   * Lista todas as autorizações de visitantes. No futuro, pode ser filtrado por status ou data.
+   */
   async listarVisitantes(request, response) {
     try {
-
       const sql = `
-      SELECT 
-        vst_id, vst_nome, vst_documento, AP_id, vst_data_visita, vst_data_saida
+        SELECT 
+          vst_id, 
+          userap_id,
+          vst_nome, 
+          vst_documento, 
+          vst_validade_inicio, 
+          vst_validade_fim, 
+          vst_status,
+          vst_data_entrada,
+          vst_data_saida
         FROM Visitantes 
-    `;
-
-      const [row] = await db.query(sql);
-      const nItens = row.length;
+        ORDER BY vst_validade_inicio DESC;
+      `;
+      
+      const [rows] = await db.query(sql);
 
       return response.status(200).json({
         sucesso: true,
-        message: "Lista de visitantes",
-        nItens,
-        dados: row,
-      });
-  } catch (error) {
-      return response.status(500).json({
-        sucesso: false,
-        message: "Erro na listagem de visitantes ",
-        dados: error.message,
-      });
-    }
-  },
-  async cadastrarVisitantes(request, response) {
-    try {
-
-      const { nome, documento, ap_id, data_visita, data_saida } = request.body;
-
-      const sql = `
-        INSERT INTO Visitantes (vst_nome, vst_documento, ap_id, vst_data_visita, vst_data_saida)
-        VALUES (?, ?, ?, ?, ?)
-        `;
-
-
-        const values = [nome, documento, ap_id, data_visita, data_saida];
-
-        const [result] = await db.query(sql, values);
-
-        const dados = {
-          id: result.insertId,
-          nome,
-          documento,
-          ap_id,
-          data_visita,
-          data_saida,
-        };
-      return response.status(200).json({
-        sucesso: true,
-        message: "Cadastro de visitantes",
-        dados
+        message: "Lista de autorizações de visitantes recuperada com sucesso.",
+        nItens: rows.length,
+        dados: rows,
       });
     } catch (error) {
       return response.status(500).json({
         sucesso: false,
-        message: "Erro no cadastro de visitantes",
+        message: "Erro no servidor.",
         dados: error.message,
       });
     }
   },
-  async editarVisitantes(request, response) {
-  try {
-    const { nome, documento, ap_id, data_visita } = request.body;
-    const { id } = request.params;
 
-    // Validação simples de campos obrigatórios
-    if (!nome || !documento || !ap_id || !data_visita) {
-      return response.status(400).json({
-        sucesso: false,
-        message: "Todos os campos são obrigatórios!"
-      });
-    }
-
-    const sql = `
-      UPDATE Visitantes
-      SET vst_nome = ?, vst_documento = ?, ap_id = ?, vst_data_visita = ?
-      WHERE vst_id = ?;
-    `;
-
-    const values = [nome, documento, ap_id, data_visita, id];
-    const [result] = await db.query(sql, values);
-
-    if (result.affectedRows === 0) {
-      return response.status(404).json({
-        sucesso: false,
-        message: `Visitante ${id} não encontrado!`,
-        dados: null,
-      });
-    }
-
-    return response.status(200).json({
-      sucesso: true,
-      message: `Visitante ${id} atualizado com sucesso!`, 
-      dados: { id, nome, documento, ap_id, data_visita }
-    });
-
-  } catch (error) {
-    return response.status(500).json({
-      sucesso: false,
-      message: "Erro na edição de visitantes",
-      dados: error.message,
-    });
-  }
-},
-  async apagarVisitantes(request, response) {
+  /**
+   * Cadastra uma NOVA autorização de visitante (pré-cadastro pelo morador).
+   */
+  async cadastrarAutorizacao(request, response) {
     try {
+      // Recebe os dados do app do morador
+      const { 
+        userap_id, 
+        vst_nome, 
+        vst_documento, 
+        vst_validade_inicio, 
+        vst_validade_fim 
+      } = request.body;
 
-      const { id } = request.params;
+      // Validação dos dados
+      if (!userap_id || !vst_nome || !vst_validade_inicio || !vst_validade_fim) {
+        return response.status(400).json({
+          sucesso: false,
+          message: "Campos obrigatórios não foram preenchidos.",
+        });
+      }
+
+      // Gera um hash único para o QR Code
+      const vst_qrcode_hash = uuidv4();
 
       const sql = `
-      DELETE FROM Visitantes
-      WHERE vst_id = ?;
+        INSERT INTO Visitantes (userap_id, vst_nome, vst_documento, vst_validade_inicio, vst_validade_fim, vst_qrcode_hash)
+        VALUES (?, ?, ?, ?, ?, ?);
       `;
-      const values = [id];
+      
+      const values = [userap_id, vst_nome, vst_documento, vst_validade_inicio, vst_validade_fim, vst_qrcode_hash];
       const [result] = await db.query(sql, values);
+
+      const dados = {
+        vst_id: result.insertId,
+        vst_nome,
+        vst_qrcode_hash // Retorna o hash para o app gerar o QR Code
+      };
+
+      return response.status(201).json({
+        sucesso: true,
+        message: "Autorização de visitante cadastrada com sucesso.",
+        dados
+      });
+
+    } catch (error) {
+      return response.status(500).json({
+        sucesso: false,
+        message: "Erro no servidor ao cadastrar autorização.",
+        dados: error.message,
+      });
+    }
+  },
+
+  /**
+   * Registra a ENTRADA de um visitante (usado pela portaria).
+   */
+  async registrarEntrada(request, response) {
+    try {
+        const { id } = request.params; // vst_id
+
+        const sql = `
+            UPDATE Visitantes
+            SET 
+                vst_status = 'Entrou',
+                vst_data_entrada = NOW()
+            WHERE vst_id = ? AND vst_status = 'Aguardando'; 
+        `;
+        
+        const [result] = await db.query(sql, [id]);
+
+        if (result.affectedRows === 0) {
+            return response.status(404).json({
+                sucesso: false,
+                message: `Autorização ${id} não encontrada ou visitante já entrou.`,
+            });
+        }
+
+        return response.status(200).json({ 
+            sucesso: true,
+            message: `Entrada do visitante registrada com sucesso!`, 
+        });
+
+    } catch (error) {
+        return response.status(500).json({
+            sucesso: false,
+            message: "Erro no servidor ao registrar entrada.",
+            dados: error.message,
+        });
+    }
+  },
+
+  /**
+   * Registra a SAÍDA de um visitante (usado pela portaria).
+   */
+  async registrarSaida(request, response) {
+    try {
+        const { id } = request.params; // vst_id
+
+        const sql = `
+            UPDATE Visitantes
+            SET 
+                vst_status = 'Finalizado',
+                vst_data_saida = NOW()
+            WHERE vst_id = ? AND vst_status = 'Entrou';
+        `;
+        
+        const [result] = await db.query(sql, [id]);
+
+        if (result.affectedRows === 0) {
+            return response.status(404).json({
+                sucesso: false,
+                message: `Autorização ${id} não encontrada ou visitante não havia registrado entrada.`,
+            });
+        }
+
+        return response.status(200).json({ 
+            sucesso: true,
+            message: `Saída do visitante registrada com sucesso!`, 
+        });
+        
+    } catch (error) {
+        return response.status(500).json({
+            sucesso: false,
+            message: "Erro no servidor ao registrar saída.",
+            dados: error.message,
+        });
+    }
+  },
+
+  /**
+   * Cancela uma autorização de visitante (usado pelo morador).
+   */
+  async cancelarAutorizacao(request, response) {
+    try {
+      const { id } = request.params; // vst_id
+
+      const sql = `
+        UPDATE Visitantes
+        SET vst_status = 'Cancelado'
+        WHERE vst_id = ? AND vst_status = 'Aguardando';
+      `;
+      
+      const [result] = await db.query(sql, [id]);
 
       if (result.affectedRows === 0) {
         return response.status(404).json({
           sucesso: false,
-          message: `Visitante ${id} não encontrado!`,
-          dados: null,
+          message: `Autorização ${id} não encontrada ou não pode mais ser cancelada.`,
         });
       }
 
       return response.status(200).json({ 
         sucesso: true,
-        message: `Visitante ${nome} removido com sucesso!`, 
-        dados: null,
+        message: `Autorização ${id} cancelada com sucesso!`, 
       });
-  } catch (error) {
+    } catch (error) {
       return response.status(500).json({
         sucesso: false,
-        message: "Erro na remoção de visitantes",
+        message: "Erro no servidor ao cancelar autorização.",
         dados: error.message,
       });
     }

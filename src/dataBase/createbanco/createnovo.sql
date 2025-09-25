@@ -49,8 +49,10 @@ CREATE TABLE Usuarios (
     user_email VARCHAR(60) UNIQUE NOT NULL,
     user_senha VARCHAR(60) NOT NULL,
     user_telefone VARCHAR(30),
-    user_tipo ENUM('ADM', 'Sindico', 'Funcionario', 'Morador') NOT NULL
+    user_tipo ENUM('ADM', 'Sindico', 'Funcionario', 'Morador') NOT NULL,
+    user_push_token VARCHAR(255) NULL UNIQUE -- Coluna adicionada para notificações
 ) ENGINE=InnoDB;
+
 
 -- 3 - GERENCIAMENTO
 CREATE TABLE Gerenciamento (

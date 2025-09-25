@@ -1,41 +1,41 @@
--- 1
-select * from condominio;
+-- 1 - CONDOMINIO
+SELECT * FROM condominio;
 
--- 2
-select * from usuarios;
+-- 2 - USUARIOS
+SELECT * FROM usuarios;
 
--- 3
-select * from gerenciamento;
+-- 3 - GERENCIAMENTO
+SELECT * FROM gerenciamento;
 
--- 4
-select * from bloco;
+-- 4 - BLOCO
+SELECT * FROM bloco;
 
--- 5
-select * from ambientes;
+-- 5 - AMBIENTES
+SELECT * FROM ambientes;
 
--- 6
-select * from apartamentos;
+-- 6 - APARTAMENTOS
+SELECT * FROM apartamentos;
 
--- 7
-select * from visitantes;
+-- 7 - USUARIO_APARTAMENTOS
+SELECT * FROM usuario_apartamentos;
 
--- 8
-select * from usuario_apartamento;
+-- 8 - VISITANTES
+SELECT * FROM visitantes;
 
--- 9
-select * from encomendas;
+-- 9 - ENCOMENDAS
+SELECT * FROM encomendas;
 
--- 10
-select * from mensagens;
+-- 10 - MENSAGENS
+SELECT * FROM mensagens;
 
--- 11
-select * from notificacoes;
+-- 11 - NOTIFICACOES
+SELECT * FROM notificacoes;
 
--- 12
-select * from reservas_ambientes;
+-- 12 - RESERVAS_AMBIENTES
+SELECT * FROM reservas_ambientes;
 
--- 13
-select * from ocorrencias;
+-- 13 - OCORRENCIAS
+SELECT * FROM ocorrencias;
 
--- 14
-select * from documentos;
+-- 14 - DOCUMENTOS
+SELECT * FROM documentos;

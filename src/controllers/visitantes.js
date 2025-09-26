@@ -3,9 +3,6 @@ const { v4: uuidv4 } = require('uuid'); // Importe uma biblioteca para gerar IDs
 
 module.exports = {
 
-  
-
-
   /**
    * NOVO MÉTODO - Lista visitantes relevantes para o Dashboard.
    * Pega apenas quem está 'Aguardando' ou 'Entrou'.
@@ -138,6 +135,61 @@ module.exports = {
       });
     }
   },
+
+  /**
+   * FUNÇÃO ADICIONADA: Notifica um morador sobre um visitante inesperado.
+   */
+  async notificarVisitanteInesperado(request, response) {
+    try {
+        const { userap_id } = request.params;
+        const { vst_nome } = request.body;
+
+        if (!vst_nome) {
+            return response.status(400).json({ sucesso: false, message: "O nome do visitante é obrigatório." });
+        }
+
+        const sql = `
+            SELECT u.user_push_token, u.user_nome
+            FROM Usuario_Apartamentos ua
+            JOIN Usuarios u ON ua.user_id = u.user_id
+            WHERE ua.userap_id = ?;
+        `;
+        const [rows] = await db.query(sql, [userap_id]);
+
+        if (rows.length === 0 || !rows[0].user_push_token) {
+            return response.status(404).json({ sucesso: false, message: "Morador não encontrado ou não possui dispositivo para notificações." });
+        }
+
+        const pushToken = rows[0].user_push_token;
+        if (!Expo.isExpoPushToken(pushToken)) {
+            return response.status(400).json({ sucesso: false, message: "Token de notificação inválido." });
+        }
+
+        const message = {
+            to: pushToken,
+            sound: 'default',
+            title: 'Visitante na Portaria',
+            body: `${vst_nome} solicita acesso à sua unidade.`,
+            data: { vst_nome: vst_nome, userap_id: userap_id },
+        };
+
+        await expo.sendPushNotificationsAsync([message]);
+
+        // Opcional: Registrar na tabela de Notificações
+        const not_titulo = 'Visitante na Portaria';
+        const not_mensagem = `${vst_nome} solicita acesso. Autorize ou negue pelo aplicativo.`;
+        const insertNotificacaoSql = `
+            INSERT INTO Notificacoes (userap_id, not_titulo, not_mensagem, not_data_envio, not_tipo, not_prioridade)
+            VALUES (?, ?, ?, NOW(), 'Aviso', 'Alta');
+        `;
+        await db.query(insertNotificacaoSql, [userap_id, not_titulo, not_mensagem]);
+
+        return response.status(200).json({ sucesso: true, message: `Notificação enviada com sucesso para o morador.` });
+    } catch (error) {
+        return response.status(500).json({ sucesso: false, message: "Erro ao enviar notificação de visitante.", dados: error.message });
+    }
+  },
+
 
   /**
    * Registra a ENTRADA de um visitante (usado pela portaria).

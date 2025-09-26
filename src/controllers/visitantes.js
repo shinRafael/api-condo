@@ -2,6 +2,52 @@ const db = require('../dataBase/connection');
 const { v4: uuidv4 } = require('uuid'); // Importe uma biblioteca para gerar IDs únicos
 
 module.exports = {
+
+  
+
+
+  /**
+   * NOVO MÉTODO - Lista visitantes relevantes para o Dashboard.
+   * Pega apenas quem está 'Aguardando' ou 'Entrou'.
+   */
+  async listarVisitantesParaDashboard(request, response) {
+    try {
+      const sql = `
+        SELECT 
+          vst_id, 
+          vst_nome, 
+          vst_status,
+          vst_data_entrada,
+          vst_data_saida
+        FROM Visitantes 
+        WHERE vst_status IN ('Aguardando', 'Entrou')
+        ORDER BY 
+          CASE 
+            WHEN vst_status = 'Aguardando' THEN 1
+            WHEN vst_status = 'Entrou' THEN 2
+            ELSE 3
+          END, 
+          vst_data_entrada DESC, 
+          vst_id DESC
+        LIMIT 10;
+      `;
+      
+      const [rows] = await db.query(sql);
+
+      return response.status(200).json({
+        sucesso: true,
+        message: "Lista de visitantes para o dashboard.",
+        dados: rows,
+      });
+    } catch (error) {
+      return response.status(500).json({
+        sucesso: false,
+        message: "Erro no servidor ao buscar visitantes para o dashboard.",
+        dados: error.message,
+      });
+    }
+  },
+
   /**
    * Lista todas as autorizações de visitantes. No futuro, pode ser filtrado por status ou data.
    */

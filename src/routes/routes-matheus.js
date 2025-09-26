@@ -19,8 +19,15 @@ router.delete('/apartamentos/:id', apartamentoController.apagarApartamentos);
 
 // --- ROTAS PARA O MORADOR (no app mobile) ---
 
+
+
 // Rota para o morador listar TODAS as autorizações (pode ser aprimorada com filtros)
 router.get('/visitantes', visitantesController.listarVisitantes);
+
+// No seu arquivo de rotas (backend)
+
+// ... (suas outras rotas)
+router.get('/visitantes/dashboard', visitantesController.listarVisitantesParaDashboard);
 
 // Rota para o morador criar uma nova autorização (pré-cadastro)
 router.post('/visitantes', visitantesController.cadastrarAutorizacao);

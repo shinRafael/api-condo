@@ -41,7 +41,7 @@ INSERT INTO Apartamentos (bloco_id, ap_numero, ap_andar) VALUES
 (3, '12', 1);
 
 -- 7 - USUARIO_APARTAMENTOS
-INSERT INTO Usuario_Apartamento (user_id, ap_id) VALUES
+INSERT INTO Usuario_Apartamentos (user_id, ap_id) VALUES
 (1, 1),
 (2, 2),
 (3, 3),

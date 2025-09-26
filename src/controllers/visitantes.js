@@ -190,6 +190,36 @@ module.exports = {
     }
   },
 
+  async autorizarEntradaImediata(request, response) {
+    try {
+      const { userap_id, vst_nome, vst_documento } = request.body;
+
+      if (!userap_id || !vst_nome) {
+        return response.status(400).json({ sucesso: false, message: "O ID do morador e o nome do visitante são obrigatórios." });
+      }
+
+      const vst_qrcode_hash = uuidv4();
+      const agora = new Date();
+      const fimDoDia = new Date(agora);
+      fimDoDia.setHours(23, 59, 59, 999);
+
+      const sql = `
+        INSERT INTO Visitantes (userap_id, vst_nome, vst_documento, vst_validade_inicio, vst_validade_fim, vst_qrcode_hash, vst_status, vst_data_entrada)
+        VALUES (?, ?, ?, ?, ?, ?, 'Entrou', ?);
+      `;
+      const values = [userap_id, vst_nome, vst_documento, agora, fimDoDia, vst_qrcode_hash, agora];
+      const [result] = await db.query(sql, values);
+
+      return response.status(201).json({
+        sucesso: true,
+        message: `Entrada de ${vst_nome} autorizada com sucesso.`,
+        dados: { vst_id: result.insertId }
+      });
+    } catch (error) {
+      console.error('Erro ao autorizar entrada imediata:', error);
+      return response.status(500).json({ sucesso: false, message: "Erro no servidor ao processar a autorização.", dados: error.message });
+    }
+  },
 
   /**
    * Registra a ENTRADA de um visitante (usado pela portaria).

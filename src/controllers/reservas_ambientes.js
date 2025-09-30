@@ -142,6 +142,18 @@ module.exports = {
     },
 };
 
+// Adicione este bloco no final do arquivo
+const express = require('express');
+const router = express.Router();
+
+// A rota GET que o seu frontend precisa
+router.get('/reservas_ambientes', module.exports.listarreservas_ambientes);
+
+// Para usar, você precisará exportar o router.
+// A forma mais simples é adicionar o router ao module.exports
+module.exports.router = router;
+
+
 
     // //async filtrarreservas_ambientes (request, response) {
     //     try {

@@ -209,3 +209,12 @@ module.exports = {
         }
     },
 };
+
+// Adicione este bloco no final do arquivo
+const express = require('express');
+const router = express.Router();
+
+// A rota GET que o seu frontend precisa
+router.get('/ocorrencias', module.exports.listarTodasOcorrencias);
+
+module.exports.router = router;

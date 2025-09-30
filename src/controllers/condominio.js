@@ -24,7 +24,7 @@ module.exports = {
         });
         }
     },
-    async cadrastocondominio (request, response){
+    async cadastrarcondominio (request, response){
         try{
            const { nome, endereco, cidade, status} = request.body;
            const cond_ativo = 1;
@@ -54,7 +54,7 @@ module.exports = {
 
          return response.status(200).json({
                 sucesso: true,
-                mensagem: 'Cadrasto condominio.',
+                mensagem: 'Condominio cadastrado com sucesso.',
                 dados: dados
              })
         }catch (error){

@@ -229,7 +229,7 @@ async editarEnvioAgrupado(request, response) {
     },
 
 
-    async cadrastonotificacao(request, response) {
+    async cadastrarnotificacao(request, response) {
         try {
             // Removido not_tipo do corpo da requisição
             const { not_titulo, not_mensagem, not_prioridade, alvo } = request.body;

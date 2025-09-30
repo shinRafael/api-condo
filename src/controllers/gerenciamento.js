@@ -31,7 +31,7 @@ INNER JOIN condominio cond
             });
         }
     },
-    async cadrastogerenciamento(request, response) {
+    async cadastrargerenciamento(request, response) {
         try {
             const { cond_id, ger_data, ger_descricao, ger_valor } = request.body;
             const ger_ativo = 1;

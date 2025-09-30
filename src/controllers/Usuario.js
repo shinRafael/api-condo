@@ -21,7 +21,7 @@ module.exports = {
 
         }
     },
-    async cadrastoUsuario (request, response){
+    async cadastrarUsuario (request, response){
         try{
             const { user_id, user_nome, user_email, user_telefone, user_senha, user_tipo,} = request.body;
             const user_ativo = 1;
@@ -48,7 +48,7 @@ module.exports = {
 
          return response.status(200).json({
                 sucesso: true,
-                nmensagem: 'Cadrasto usuario.',
+                nmensagem: 'Cadastrar usuario.',
                 dados: dados
              })
         }catch (error){

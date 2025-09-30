@@ -26,7 +26,7 @@ router.get('/notificacao/:userap_id', NotificacaoController.listarnotificacao);
 router.patch('/notificacao/:not_id/lida', NotificacaoController.marcarComoLida);
 
 // Rota para o PAINEL WEB (Criar novas notificações)
-router.post('/notificacao', NotificacaoController.cadrastonotificacao);
+router.post('/notificacao', NotificacaoController.cadastrarnotificacao);
 
 // ===== ADICIONE A ROTA DE EDITAR AQUI =====
 // Rota para o PAINEL WEB (Editar uma notificação existente)

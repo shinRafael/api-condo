@@ -5,7 +5,7 @@ module.exports = {
     try {
         const sql = `
             SELECT cond_id, cond_nome, cond_endereco,
-                   cond_cidade, cond_status 
+                   cond_cidade
             FROM condominio;
         `;
         const [rows] = await bd.query(sql);
@@ -26,19 +26,19 @@ module.exports = {
     },
     async cadastrarcondominio (request, response){
         try{
-           const { nome, endereco, cidade, status} = request.body;
+           const { nome, endereco, cidade} = request.body;
            const cond_ativo = 1;
 
            // instrução SQL
            const sql = `
                INSERT INTO condominio
-                    (cond_nome, cond_endereco, cond_cidade, cond_status)
+                    (cond_nome, cond_endereco, cond_cidade)
                VALUES 
                (?, ?, ?, ?);
            `;
 
            // definição dos dados a serem inseridos em um array
-           const values = [ nome, endereco, cidade, status ];
+           const values = [ nome, endereco, cidade];
 
            //execução da instrução sql passando os parâmetros
            const [result] = await bd.query(sql, values);
@@ -49,7 +49,6 @@ module.exports = {
             nome,
             endereco,
             cidade,
-            status
            };
 
          return response.status(200).json({
@@ -69,16 +68,16 @@ module.exports = {
     async editarcondominio (request, response){
         try{
             //parâmetros recebidos pelo corpo da requisição 
-            const {  nome, endereco, cidade, status } = request.body;
+            const {  nome, endereco, cidade} = request.body;
             //parâmetro recebido pela URL via params ex: /usuario/1
             const { id } = request.params;
             // instrução SQL
             const sql = `
-               UPDATE condominio SET cond_nome = ?, cond_endereco = ?, cond_cidade = ?, cond_status = ?
+               UPDATE condominio SET cond_nome = ?, cond_endereco = ?, cond_cidade = ?
                WHERE cond_id = ?
            `;
            //preparo do array com dados que serão atualizados 
-           const values = [nome, endereco, cidade, status, id];
+           const values = [nome, endereco, cidade, id];
            //execução e obtenção de confirmação da atualização realizada
            const atualizaDados = await bd.query(sql, values);
         
@@ -139,7 +138,7 @@ module.exports = {
     },
     async filtrarCondominios(request, response) {
         try {
-            const {nome, status } = request.query;
+            const {nome} = request.query;
 
             let sql = 'SELECT * FROM condominio WHERE 1=1';
             const params = [];
@@ -148,11 +147,6 @@ module.exports = {
                 sql += 'AND cond_nome LIKE ?';
                 params.push(`%${nome}%`);
             }
-            if (status) { 
-                sql += ' AND cond_status = ?'; 
-                params.push(status);
-            }
-
             const [rows] = await db.query(sql, params);
              
             return response.status(200).json({

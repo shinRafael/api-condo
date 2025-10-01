@@ -34,11 +34,11 @@ module.exports = {
                INSERT INTO condominio
                     (cond_nome, cond_endereco, cond_cidade)
                VALUES 
-               (?, ?, ?, ?);
+               (?, ?, ?);
            `;
 
            // definição dos dados a serem inseridos em um array
-           const values = [ nome, endereco, cidade];
+           const values = [ nome, endereco, cidade ];
 
            //execução da instrução sql passando os parâmetros
            const [result] = await bd.query(sql, values);
@@ -48,7 +48,7 @@ module.exports = {
             id: result.insertId,
             nome,
             endereco,
-            cidade,
+            cidade
            };
 
          return response.status(200).json({

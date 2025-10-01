@@ -1,19 +1,19 @@
 const bd = require('../dataBase/connection');
 
 module.exports = {
-    async listargerenciamento(request, response) {
+    async listarGerenciamento(request, response) {
         try {
             const sql = `
-     SELECT 
-  ger.ger_id,
-  ger.cond_id,
-  cond.cond_nome,
-  DATE_FORMAT(ger.ger_data, '%d/%m/%Y') AS ger_data,
-  ger.ger_descricao,
-  ger.ger_valor -- valor puro (DECIMAL ou FLOAT)
-FROM gerenciamento ger
-INNER JOIN condominio cond 
-  ON ger.cond_id = cond.cond_id;
+                SELECT 
+                  ger.ger_id,
+                  ger.cond_id,
+                  cond.cond_nome,
+                  DATE_FORMAT(ger.ger_data, '%d/%m/%Y') AS ger_data,
+                  ger.ger_descricao,
+                  ger.ger_valor
+                FROM gerenciamento ger
+                INNER JOIN condominio cond 
+                  ON ger.cond_id = cond.cond_id;
             `;
             const [rows] = await bd.query(sql);
 
@@ -24,71 +24,68 @@ INNER JOIN condominio cond
                 dados: rows
             })
         } catch (error) {
-            return response.status(550).json({
+            return response.status(500).json({ // <-- corrigido
                 sucesso: false,
                 mensagem: 'Erro na listagem de gerenciamento.',
                 dados: error.message
             });
         }
     },
-    async cadastrargerenciamento(request, response) {
+
+    async cadastrarGerenciamento(request, response) {
         try {
             const { cond_id, ger_data, ger_descricao, ger_valor } = request.body;
-            const ger_ativo = 1;
 
-            // instrução SQL
             const sql = `
-           INSERT INTO gerenciamento
-               (cond_id, ger_data, ger_descricao, ger_valor)
-           VALUES 
-               (?, ?, ?, ?);
-       `;
+                INSERT INTO gerenciamento
+                    (cond_id, ger_data, ger_descricao, ger_valor)
+                VALUES (?, ?, ?, ?);
+            `;
 
-
-            // definição dos dados a serem inseridos em um array
             const values = [cond_id, ger_data, ger_descricao, ger_valor];
-
-            //execução da instrução sql passando os parâmetros
             const [result] = await bd.query(sql, values);
 
-            //Identificação do ID do registro inserido 
+            const [cond] = await bd.query(
+                "SELECT cond_nome FROM condominio WHERE cond_id = ?",
+                [cond_id]
+            );
+
             const dados = {
-                id: result.insertId,
+                ger_id: result.insertId,
                 cond_id,
+                cond_nome: cond.length > 0 ? cond[0].cond_nome : null,
                 ger_data,
                 ger_descricao,
                 ger_valor
             };
-            return response.status(200).json({
+
+            return response.status(201).json({ // <-- 201 para cadastro
                 sucesso: true,
                 mensagem: 'Cadastro de gerenciamento realizado.',
-                dados: dados
+                dados
             });
         } catch (error) {
-            return response.status(550).json({
+            return response.status(500).json({ // <-- corrigido
                 sucesso: false,
-                mensagem: 'Erro ao cadastrar de gerenciamento.',
+                mensagem: 'Erro ao cadastrar gerenciamento.',
                 dados: error.message
             });
         }
     },
+
     async editargerenciamento(request, response) {
-        try {    //parâmetros recebidos pelo corpo da requisição 
+        try {
             const { cond_id, ger_data, ger_descricao, ger_valor } = request.body;
-            //parâmetro recebido pela URL via params ex: /usuario/1
             const { id } = request.params;
-            // instrução SQL
+
             const sql = `
-                 UPDATE gerenciamento
-                 SET cond_id = ?, ger_data = ?, ger_descricao = ?, ger_valor = ?
-                 WHERE ger_id = ?
-                 `;
-            //preparo do array com dados que serão atualizados 
+                UPDATE gerenciamento
+                SET cond_id = ?, ger_data = ?, ger_descricao = ?, ger_valor = ?
+                WHERE ger_id = ?
+            `;
             const values = [cond_id, ger_data, ger_descricao, ger_valor, id];
-            //execução e obtenção de confirmação da atualização realizada
             const [result] = await bd.query(sql, values);
 
-            // Verifica se alguma linha foi afetada
             if (result.affectedRows === 0) {
                 return response.status(404).json({
                     sucesso: false,
@@ -97,9 +94,8 @@ INNER JOIN condominio cond
                 });
             }
 
-            // Dados retornados para o frontend
             const dados = {
-                id,
+                ger_id: id, // <-- corrigido
                 cond_id,
                 ger_data,
                 ger_descricao,
@@ -120,38 +116,28 @@ INNER JOIN condominio cond
             });
         }
     },
+
     async apagargerenciamento(request, response) {
         try {
-            // parâmetro passado via URL na chamada da API pelo front-end
             const { id } = request.params;
-
-            // comando de exclusão
             const sql = 'DELETE FROM gerenciamento WHERE ger_id = ?';
+            const [result] = await bd.query(sql, [id]);
 
-            // array com parâmetros da exclusão
-            const values = [id];
-
-            // executa instrução no banco de dados
-            const [result] = await bd.query(sql, values);
-
-            // se nenhum registro foi afetado, o item não foi encontrado
             if (result.affectedRows === 0) {
                 return response.status(404).json({
                     sucesso: false,
-                    mensagem: `Serviço ${id} não encontrado!`,
+                    mensagem: `Gerenciamento ${id} não encontrado!`,
                     dados: null
                 });
             }
 
-            // retorno de sucesso
             return response.status(200).json({
                 sucesso: true,
-                mensagem: `Serviço ${id} excluído com sucesso`,
+                mensagem: `Gerenciamento ${id} excluído com sucesso`,
                 dados: null
             });
 
         } catch (error) {
-            // erro na requisição
             return response.status(500).json({
                 sucesso: false,
                 mensagem: 'Erro na requisição.',
@@ -159,27 +145,29 @@ INNER JOIN condominio cond
             });
         }
     },
+
     async filtrarGerenciamento(request, response) {
         try {
-            const { tipo, condominio } = request.query;
+            const { condominio, descricao } = request.query;
 
-            let sql = 'SELECT * FROM gerenciamento WHERE 1=1';
+            let sql = 'SELECT * FROM gerenciamento WHERE 1=1 ';
             const params = [];
 
-            if (tipo) {
-                sql += 'AND tipo_usuario = ?';
-                params.push(tipo);
-            }
-
             if (condominio) {
-                sql += 'AND cond_id = ?';
+                sql += 'AND cond_id = ? ';
                 params.push(condominio);
             }
+
+            if (descricao) {
+                sql += 'AND ger_descricao LIKE ? ';
+                params.push(`%${descricao}%`);
+            }
+
             const [rows] = await bd.query(sql, params);
 
             return response.status(200).json({
                 sucesso: true,
-                mensagem: 'Gerenciamentos filtrados com sucessos!',
+                mensagem: 'Gerenciamentos filtrados com sucesso!',
                 dados: rows
             });
         } catch (error) {
@@ -190,4 +178,4 @@ INNER JOIN condominio cond
             });
         }
     }
-};       
+};

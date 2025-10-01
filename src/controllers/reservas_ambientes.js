@@ -4,23 +4,25 @@ module.exports = {
     async listarreservas_ambientes(request, response) {
         try {
             const sql = `
-                SELECT res_id, userap_id, amd_id, res_horario_inicio, res_horario_fim, res_status, res_data_reserva 
-                FROM reservas_ambientes;
+                SELECT 
+                    res.*, 
+                    amb.amd_nome 
+                FROM 
+                    reservas_ambientes res
+                INNER JOIN 
+                    ambientes amb ON res.amd_id = amb.amd_id;
             `;
-
-            const [rows] = await db.query(sql);
-            const nItens = rows.length;
+            const [dados] = await db.query(sql);
 
             return response.status(200).json({
                 sucesso: true,
-                mensagem: 'Lista de reservas_ambientes.',
-                nItens,
-                dados: rows
+                mensagem: 'Lista de reservas de ambientes.',
+                dados: dados
             });
         } catch (error) {
             return response.status(500).json({
                 sucesso: false,
-                mensagem: 'Erro na listagem de reservas_ambientes.',
+                mensagem: 'Erro na requisição.',
                 dados: error.message
             });
         }
@@ -65,51 +67,51 @@ module.exports = {
     },
 
     async editarreservas_ambientes(request, response) {
-        try {
-            const { userap_id, amd_id, res_horario_inicio, res_horario_fim, res_status, res_data_reserva } = request.body;
-            const { id } = request.params;
+    try {
+        const { id } = request.params;
+        const camposParaAtualizar = request.body; // Pega tudo que foi enviado no corpo (ex: { "res_status": "Cancelado" })
 
-            const sql = `
-                UPDATE reservas_ambientes 
-                SET userap_id = ?, amd_id = ?, res_horario_inicio = ?, res_horario_fim = ?, res_status = ?, res_data_reserva = ? 
-                WHERE res_id = ?;
-            `;
-
-            const values = [userap_id, amd_id, res_horario_inicio, res_horario_fim, res_status, res_data_reserva, id];
-            const [result] = await db.query(sql, values);
-
-            if (result.affectedRows === 0) {
-                return response.status(404).json({
-                    sucesso: false,
-                    mensagem: `Reserva com ID ${id} não encontrada.`,
-                    dados: null
-                });
-            }
-
-            const dados = {
-                res_id: id,
-                userap_id,
-                amd_id,
-                res_horario_inicio,
-                res_horario_fim,
-                res_status,
-                res_data_reserva
-            };
-
-            return response.status(200).json({
-                sucesso: true,
-                mensagem: `Reserva ${id} atualizada com sucesso.`,
-                dados
-            });
-        } catch (error) {
-            return response.status(500).json({
+        // Validação para garantir que algo foi enviado para atualização
+        if (Object.keys(camposParaAtualizar).length === 0) {
+            return response.status(400).json({
                 sucesso: false,
-                mensagem: 'Erro ao editar reserva_ambientes.',
-                dados: error.message
+                mensagem: "Nenhum campo para atualizar foi fornecido.",
             });
         }
-    },
 
+        // Monta a query SQL dinamicamente
+        // Ex: "SET res_status = ?, res_data_reserva = ?"
+        const campos = Object.keys(camposParaAtualizar).map(chave => `${chave} = ?`).join(', ');
+        const valores = Object.values(camposParaAtualizar);
+
+        const sql = `UPDATE reservas_ambientes SET ${campos} WHERE res_id = ?;`;
+        
+        // Adiciona o ID ao final do array de valores para o "WHERE"
+        valores.push(id);
+
+        const [result] = await db.query(sql, valores);
+
+        if (result.affectedRows === 0) {
+            return response.status(404).json({
+                sucesso: false,
+                mensagem: `Reserva com ID ${id} não encontrada.`,
+            });
+        }
+
+        return response.status(200).json({
+            sucesso: true,
+            mensagem: `Reserva ${id} atualizada com sucesso.`,
+        });
+
+    } catch (error) {
+        console.error("Erro no controller ao editar reserva:", error); // Log do erro no console da API
+        return response.status(500).json({
+            sucesso: false,
+            mensagem: 'Erro ao editar reserva.',
+            dados: error.message
+        });
+    }
+},
     async apagarreservas_ambientes(request, response) {
         try {
             const { id } = request.params;

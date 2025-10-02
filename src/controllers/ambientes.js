@@ -13,11 +13,11 @@ module.exports ={
             const nItens = rows.length;
     
             const dados = rows.map(item => ({
-                id: item.amb_id,
+                id: item.amd_id,
                 condominioId: item.cond_id,
-                nome: item.amb_nome,
-                descricao: item.amb_descricao,
-                capacidade: item.amb_capacidade
+                nome: item.amd_nome,
+                descricao: item.amd_descricao,
+                capacidade: item.amd_capacidade
             }));
     
             return response.status(200).json({

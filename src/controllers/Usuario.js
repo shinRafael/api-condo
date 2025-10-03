@@ -1,78 +1,95 @@
 const bd = require('../dataBase/connection');
 
 module.exports = {
-    async listarUsuario (request, response){
+      async listarUsuario (request, response){
         try{
-               const sql = 'select user_id, user_nome, user_email, user_senha, user_telefone, user_tipo from Usuarios';
-                const [rows] = await bd.query(sql);
-                const nItem = rows.length;
-        
+            const sql = 'SELECT user_id, user_nome, user_email, user_telefone, user_tipo FROM Usuarios';
+            const [rows] = await bd.query(sql);
+    
             return response.status(200).json({
                 sucesso: true,
-                nmensagem: 'Lista de usuario.',
+                nmensagem: 'Lista de usuários.',
                 dados: rows
-             })
-        }catch (error){
-            return response.status(550).json({
+            });
+        } catch (error){
+            return response.status(500).json({
                 sucesso: false,
-                nmensagem: 'Erro na listagem de usuario.',
+                nmensagem: 'Erro na listagem de usuários.',
                 dados: error.message
-             });
-
+            });
         }
     },
+
     async cadastrarUsuario (request, response){
         try{
-            const { user_id, user_nome, user_email, user_telefone, user_senha, user_tipo,} = request.body;
-            const user_ativo = 1;
+            const { user_nome, user_email, user_telefone, user_senha, user_tipo } = request.body;
             
-            // instrução SQL
+            // --- MUDANÇA: Adicionamos o user_push_token como nulo ---
+            // Isso garante que o campo seja preenchido no banco de dados.
+            const user_push_token = null; 
+
+            if (user_tipo === 'ADM') {
+                return response.status(403).json({
+                    sucesso: false,
+                    nmensagem: 'A criação de novos administradores não é permitida.'
+                });
+            }
+
+            // --- MUDANÇA: Adicionamos a nova coluna no INSERT ---
             const sql = `
-                INSERT INTO usuarios
-                (user_id, user_nome, user_email, user_telefone, user_senha, user_tipo)
-                VALUES
-                (?, ?, ?, ?, ?, ?);
+                INSERT INTO usuarios (user_nome, user_email, user_telefone, user_senha, user_tipo, user_push_token)
+                VALUES (?, ?, ?, ?, ?, ?);
             `;
             
-            const values = [user_id, user_nome, user_email, user_telefone, user_senha, user_tipo];
-            
+            // --- MUDANÇA: Adicionamos o valor nulo no array de valores ---
+            const values = [user_nome, user_email, user_telefone, user_senha, user_tipo, user_push_token];
             const [result] = await bd.query(sql, values);
             
             const dados = {
-                id: result.insertId,
+                user_id: result.insertId,
                 user_nome,
                 user_email,
                 user_tipo,
             };            
 
-
-         return response.status(200).json({
+            return response.status(201).json({
                 sucesso: true,
-                nmensagem: 'Cadastrar usuario.',
+                nmensagem: 'Usuário cadastrado com sucesso.',
                 dados: dados
-             })
-        }catch (error){
-            return response.status(550).json({
+            });
+        } catch (error){
+            // Log do erro no console da API para depuração
+            console.error("Erro no controller ao cadastrar:", error); 
+            return response.status(500).json({
                 sucesso: false,
-                nmensagem: 'Erro na listagem de usuario.',
+                nmensagem: 'Erro ao cadastrar usuário.',
                 dados: error.message
-             });
-
+            });
         }
     },
+
     async editarUsuario(request, response) {
         try {
-          const { id } = request.params; // ID vindo da URL
-          const { user_nome, user_email, user_telefone, user_senha, user_tipo} = request.body;
+          const { id } = request.params;
+          const { user_nome, user_email, user_telefone, user_senha, user_tipo } = request.body;
+
+          if (user_tipo === 'ADM') {
+              return response.status(403).json({
+                  sucesso: false,
+                  nmensagem: 'Não é permitido alterar um usuário para o tipo ADM.'
+              });
+          }
       
-          // Atualizando os dados no banco
-          const sql = `
-            UPDATE usuarios
-            SET user_nome = ?, user_email = ?, user_telefone = ?, user_senha = ?, user_tipo = ?
-            WHERE user_id = ?
-          `;
-      
-          const values = [user_nome, user_email, user_telefone, user_senha, user_tipo, id];
+          let sql;
+          let values;
+          // Se uma nova senha foi enviada, o SQL inclui o campo da senha
+          if (user_senha) {
+            sql = `UPDATE usuarios SET user_nome = ?, user_email = ?, user_telefone = ?, user_senha = ?, user_tipo = ? WHERE user_id = ?`;
+            values = [user_nome, user_email, user_telefone, user_senha, user_tipo, id];
+          } else { // Senão, o SQL não mexe na senha atual
+            sql = `UPDATE usuarios SET user_nome = ?, user_email = ?, user_telefone = ?, user_tipo = ? WHERE user_id = ?`;
+            values = [user_nome, user_email, user_telefone, user_tipo, id];
+          }
       
           const [result] = await bd.query(sql, values);
       
@@ -80,20 +97,12 @@ module.exports = {
             return response.status(404).json({
               sucesso: false,
               nmensagem: 'Usuário não encontrado para atualizar.',
-              dados: null
             });
           }
       
           return response.status(200).json({
             sucesso: true,
             nmensagem: 'Usuário atualizado com sucesso.',
-            dados: {
-              user_id: id,
-              user_nome,
-              user_email,
-              user_telefone,
-              user_tipo,
-            }
           });
         } catch (error) {
           return response.status(500).json({
@@ -102,29 +111,24 @@ module.exports = {
             dados: error.message
           });
         }
-      },
+    },
       
-      async apagarUsuario(request, response) {
+    async apagarUsuario(request, response) {
         try {
           const { id } = request.params;
-      
           const sql = 'DELETE FROM usuarios WHERE user_id = ?';
-          const values = [id];
-      
-          const [result] = await bd.query(sql, values);
+          const [result] = await bd.query(sql, [id]);
       
           if (result.affectedRows === 0) {
             return response.status(404).json({
               sucesso: false,
               nmensagem: 'Usuário não encontrado para deletar.',
-              dados: null
             });
           }
       
           return response.status(200).json({
             sucesso: true,
             nmensagem: 'Usuário deletado com sucesso.',
-            dados: { user_id: id }
           });
         } catch (error) {
           return response.status(500).json({
@@ -133,7 +137,7 @@ module.exports = {
             dados: error.message
           });
         }
-      },
+    },
 
       async loginUsuario(request, response) {
         try {

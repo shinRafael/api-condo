@@ -12,7 +12,7 @@ module.exports = {
             
 
              const [row] = await db.query(sql);
-             const nItens = row.lenght;
+             const nItens = row.length;
 
             return response.status(200).json({
                 sucesso: true,
@@ -153,5 +153,14 @@ module.exports = {
         }   
     },
 }
+
+// Adicione este bloco no final do arquivo
+const express = require('express');
+const router = express.Router();
+
+// A rota GET que o seu frontend precisa
+router.get('/mensagens', module.exports.listamensagens);
+
+module.exports.router = router;
 
   

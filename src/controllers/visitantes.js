@@ -332,3 +332,12 @@ module.exports = {
     }
   },
 };
+
+// Adicione este bloco no final do arquivo
+const express = require('express');
+const router = express.Router();
+
+// A rota GET que o seu frontend precisa
+router.get('/visitantes/dashboard', module.exports.listarVisitantesParaDashboard);
+
+module.exports.router = router;

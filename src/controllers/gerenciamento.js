@@ -32,8 +32,9 @@ module.exports = {
         }
     },
 
-    async cadastrarGerenciamento(request, response) {
+   async cadastrarGerenciamento(request, response) {
         try {
+            // A API continua esperando o ID, isso está correto.
             const { cond_id, ger_data, ger_descricao, ger_valor } = request.body;
 
             const sql = `
@@ -45,6 +46,7 @@ module.exports = {
             const values = [cond_id, ger_data, ger_descricao, ger_valor];
             const [result] = await bd.query(sql, values);
 
+            // MELHORIA: Busca o nome do condomínio para retornar na resposta
             const [cond] = await bd.query(
                 "SELECT cond_nome FROM condominio WHERE cond_id = ?",
                 [cond_id]
@@ -53,7 +55,7 @@ module.exports = {
             const dados = {
                 ger_id: result.insertId,
                 cond_id,
-                cond_nome: cond.length > 0 ? cond[0].cond_nome : null,
+                cond_nome: cond.length > 0 ? cond[0].cond_nome : null, // Adicionado
                 ger_data,
                 ger_descricao,
                 ger_valor
@@ -65,7 +67,7 @@ module.exports = {
                 dados
             });
         } catch (error) {
-            return response.status(500).json({ // <-- corrigido
+            return response.status(500).json({
                 sucesso: false,
                 mensagem: 'Erro ao cadastrar gerenciamento.',
                 dados: error.message

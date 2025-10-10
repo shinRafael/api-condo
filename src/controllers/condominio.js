@@ -5,7 +5,7 @@ module.exports = {
     try {
         const sql = `
             SELECT cond_id, cond_nome, cond_endereco,
-                   cond_cidade
+                   cond_cidade, cond_estado
             FROM condominio;
         `;
         const [rows] = await bd.query(sql);
@@ -26,19 +26,18 @@ module.exports = {
     },
     async cadastrarcondominio (request, response){
         try{
-           const { nome, endereco, cidade} = request.body;
-           const cond_ativo = 1;
+           const { nome, endereco, cidade, estado} = request.body;
 
            // instrução SQL
            const sql = `
                INSERT INTO condominio
-                    (cond_nome, cond_endereco, cond_cidade)
+                    (cond_nome, cond_endereco, cond_cidade, cond_estado)
                VALUES 
-               (?, ?, ?);
+               (?, ?, ?, ?);
            `;
 
            // definição dos dados a serem inseridos em um array
-           const values = [ nome, endereco, cidade ];
+           const values = [ nome, endereco, cidade, estado ];
 
            //execução da instrução sql passando os parâmetros
            const [result] = await bd.query(sql, values);
@@ -48,7 +47,8 @@ module.exports = {
             id: result.insertId,
             nome,
             endereco,
-            cidade
+            cidade,
+            estado
            };
 
          return response.status(200).json({
@@ -68,16 +68,16 @@ module.exports = {
     async editarcondominio (request, response){
         try{
             //parâmetros recebidos pelo corpo da requisição 
-            const {  nome, endereco, cidade} = request.body;
+            const {  nome, endereco, cidade, estado} = request.body;
             //parâmetro recebido pela URL via params ex: /usuario/1
             const { id } = request.params;
             // instrução SQL
             const sql = `
-               UPDATE condominio SET cond_nome = ?, cond_endereco = ?, cond_cidade = ?
+               UPDATE condominio SET cond_nome = ?, cond_endereco = ?, cond_cidade = ?, cond_estado = ?
                WHERE cond_id = ?
            `;
            //preparo do array com dados que serão atualizados 
-           const values = [nome, endereco, cidade, id];
+           const values = [nome, endereco, cidade, estado, id];
            //execução e obtenção de confirmação da atualização realizada
            const atualizaDados = await bd.query(sql, values);
         

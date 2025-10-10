@@ -1,16 +1,16 @@
 -- 1 - CONDOMINIO
-INSERT INTO Condominio (cond_nome, cond_endereco, cond_cidade) VALUES
-('Residencial Jardim Europa', 'Rua das Flores, 123', 'São Paulo'),
-('Condomínio Sol Nascente', 'Av. Brasil, 456', 'Rio de Janeiro'),
-('Village das Palmeiras', 'Rua Central, 789', 'Belo Horizonte'),
-('Residencial Porto Seguro', 'Av. Atlântica, 1000', 'Salvador');
+INSERT INTO Condominio (cond_nome, cond_endereco, cond_cidade, cond_estado) VALUES
+('Residencial Jardim Europa', 'Rua das Flores, 123', 'São Paulo', 'SP'),
+('Condomínio Sol Nascente', 'Av. Brasil, 456', 'Rio de Janeiro', 'RJ'),
+('Village das Palmeiras', 'Rua Central, 789', 'Belo Horizonte', 'MG'),
+('Residencial Porto Seguro', 'Av. Atlântica, 1000', 'Salvador', 'BA');
 
 -- 2 - USUARIOS
-INSERT INTO Usuarios (user_nome, user_email, user_senha, user_telefone, user_tipo, user_push_token) VALUES
-('Ana Souza', 'ana@email.com', 'senha123', '1199999999', 'Morador', NULL),
-('Carlos Pereira', 'carlos@email.com', '123456', '2198888888', 'Sindico', 'ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]'),
-('Fernanda Lima', 'fernanda@email.com', 'abc123', '3197777777', 'ADM', 'ExponentPushToken[yyyyyyyyyyyyyyyyyyyyyy]'),
-('João Oliveira', 'joao@email.com', 'pass123', '7196666666', 'Funcionario', NULL);
+INSERT INTO Usuarios (user_nome, user_email, user_senha, user_telefone, user_tipo, user_push_token, user_data_cadastro) VALUES
+('Ana Souza', 'ana@email.com', 'senha123', '1199999999', 'Morador', NULL, '2023-01-15 10:30:00'),
+('Carlos Pereira', 'carlos@email.com', '123456', '2198888888', 'Sindico', 'ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]', '2023-02-20 14:15:00'),
+('Fernanda Lima', 'fernanda@email.com', 'abc123', '3197777777', 'ADM', 'ExponentPushToken[yyyyyyyyyyyyyyyyyyyyyy]', '2023-03-05 09:00:00'),
+('João Oliveira', 'joao@email.com', 'pass123', '7196666666', 'Funcionario', NULL, '2023-04-10 11:45:00'),
 
 -- 3 - GERENCIAMENTO
 INSERT INTO Gerenciamento (cond_id, ger_data, ger_descricao, ger_valor) VALUES

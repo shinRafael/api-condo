@@ -19,6 +19,79 @@ module.exports = {
             });
         }
     },
+    // =============================================================
+    // FUNÇÃO PARA BUSCAR O PERFIL COMPLETO (ID NA URL)
+    // =============================================================
+async buscarPerfilCompleto(request, response) {
+    try {
+        const userId = request.params.id;
+
+        if (!userId) {
+            return response.status(400).json({
+                sucesso: false,
+                mensagem: 'ID do usuário não fornecido.'
+            });
+        }
+
+        // Query completa com JOINS para buscar todos os dados necessários
+        const sql = `
+            SELECT 
+                u.user_id,
+                u.user_nome,
+                u.user_email,
+                u.user_telefone,
+                u.user_tipo,
+                u.user_push_token,
+                u.user_data_cadastro,
+                ua.userap_id,
+                a.ap_id,
+                a.ap_numero,
+                a.ap_andar,
+                b.bloc_id,
+                b.bloc_nome,
+                c.cond_id,
+                c.cond_nome,
+                c.cond_endereco,
+                c.cond_cidade,
+                c.cond_estado
+            FROM usuarios u
+            LEFT JOIN usuario_apartamentos ua ON u.user_id = ua.user_id
+            LEFT JOIN apartamentos a ON ua.ap_id = a.ap_id
+            LEFT JOIN bloco b ON a.bloco_id = b.bloc_id
+            LEFT JOIN condominio c ON b.cond_id = c.cond_id
+            WHERE u.user_id = ?
+            LIMIT 1
+        `;
+
+        const [rows] = await bd.query(sql, [userId]);
+
+        if (rows.length === 0) {
+            return response.status(404).json({
+                sucesso: false,
+                mensagem: 'Usuário não encontrado.'
+            });
+        }
+
+        const perfil = rows[0];
+        
+        // Remove senha se existir (segurança)
+        if (perfil.user_senha) delete perfil.user_senha;
+
+        return response.status(200).json({
+            sucesso: true,
+            mensagem: 'Perfil do usuário carregado com sucesso.',
+            dados: perfil
+        });
+
+    } catch (error) {
+        console.error('❌ Erro ao buscar perfil completo:', error);
+        return response.status(500).json({
+            sucesso: false,
+            mensagem: 'Erro interno do servidor ao buscar perfil completo.',
+            erro: error.message
+        });
+    }
+},
 
     async cadastrarUsuario (request, response){
         try{

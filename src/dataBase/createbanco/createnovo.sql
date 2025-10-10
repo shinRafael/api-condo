@@ -39,7 +39,8 @@ CREATE TABLE Condominio (
     cond_id INT AUTO_INCREMENT PRIMARY KEY,
     cond_nome VARCHAR(60) NOT NULL,
     cond_endereco VARCHAR(130),
-    cond_cidade VARCHAR(60)
+    cond_cidade VARCHAR(60),
+    cond_estado VARCHAR(2) -- ✅ ADICIONADO
 ) ENGINE=InnoDB;
 
 -- 2 - USUARIOS
@@ -50,7 +51,8 @@ CREATE TABLE Usuarios (
     user_senha VARCHAR(60) NOT NULL,
     user_telefone VARCHAR(30),
     user_tipo ENUM('ADM', 'Sindico', 'Funcionario', 'Morador') NOT NULL,
-    user_push_token VARCHAR(255) NULL UNIQUE -- Coluna adicionada para notificações
+    user_push_token VARCHAR(255) NULL UNIQUE, -- Coluna para notificações
+    user_data_cadastro DATETIME DEFAULT CURRENT_TIMESTAMP -- <--- NOVA COLUNA E CONFIGURAÇÃO
 ) ENGINE=InnoDB;
 
 

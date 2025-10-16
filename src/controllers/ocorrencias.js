@@ -1,23 +1,52 @@
 const db = require('../dataBase/connection');
 
 module.exports = {
-    // FUNÇÃO PARA O SÍNDICO (WEB) - Lista tudo
+    // FUNÇÃO PARA O SÍNDICO (WEB) - Lista tudo, agora agrupado por status
     async listarTodasOcorrencias(request, response) {
         try {
             const sql = `
                 SELECT 
                     oco_id, userap_id, oco_protocolo, oco_categoria, oco_descricao, 
                     oco_localizacao, oco_data, oco_status, oco_prioridade, oco_imagem
-                FROM ocorrencias;
+                FROM ocorrencias
+                ORDER BY oco_data DESC;
             `;
 
             const [rows] = await db.query(sql);
             
+            // Objeto para agrupar as ocorrências por status
+            const ocorrenciasAgrupadas = {
+                abertas: [],
+                emAndamento: [],
+                resolvidas: [],
+                canceladas: []
+            };
+
+            // Itera sobre os resultados e os agrupa em suas respectivas listas
+            rows.forEach(ocorrencia => {
+                switch (ocorrencia.oco_status) {
+                    case 'Aberta':
+                        ocorrenciasAgrupadas.abertas.push(ocorrencia);
+                        break;
+                    case 'Em Andamento':
+                        ocorrenciasAgrupadas.emAndamento.push(ocorrencia);
+                        break;
+                    case 'Resolvida':
+                        ocorrenciasAgrupadas.resolvidas.push(ocorrencia);
+                        break;
+                    case 'Cancelada':
+                        ocorrenciasAgrupadas.canceladas.push(ocorrencia);
+                        break;
+                    default:
+                        // Opcional: Tratar status não esperados, se necessário
+                        break;
+                }
+            });
+
             return response.status(200).json({
                 sucesso: true,
-                mensagem: 'Lista de todas as ocorrências.',
-                nItens: rows.length,
-                dados: rows
+                mensagem: 'Lista de todas as ocorrências agrupadas por status.',
+                dados: ocorrenciasAgrupadas // Retorna o objeto com as listas separadas
             });
         } catch (error) {
             return response.status(500).json({
@@ -59,17 +88,12 @@ module.exports = {
         }
     },
 
-
     // CADASTRAR
-// ... (dentro de module.exports)
-
     async cadastrarocorrencias(request, response) {
         try {
-            // 1. Pega os dados enviados pelo aplicativo. Note que não pegamos mais o 'oco_protocolo'.
             const { userap_id, oco_categoria, oco_descricao, oco_localizacao, oco_prioridade, oco_imagem } = request.body;
             const anoAtual = new Date().getFullYear();
 
-            // 2. Busca no banco de dados para descobrir o número da última ocorrência do ano.
             const sqlBusca = `
                 SELECT COUNT(*) as total_no_ano FROM ocorrencias 
                 WHERE YEAR(oco_data) = ?;
@@ -77,30 +101,25 @@ module.exports = {
             const [resultadoBusca] = await db.query(sqlBusca, [anoAtual]);
             const proximoNumero = resultadoBusca[0].total_no_ano + 1;
 
-            // 3. Formata o novo protocolo com 4 dígitos (ex: 0001, 0015, etc.)
             const protocoloFormatado = `OCO-${anoAtual}-${proximoNumero.toString().padStart(4, '0')}`;
 
-            // 4. Insere a ocorrência no banco com o protocolo gerado pela API.
             const sqlInsert = `
                 INSERT INTO ocorrencias 
                 (userap_id, oco_protocolo, oco_categoria, oco_descricao, oco_localizacao, oco_data, oco_status, oco_prioridade, oco_imagem)
                 VALUES (?, ?, ?, ?, ?, NOW(), ?, ?, ?);
             `;
-            // Usamos NOW() para pegar a data e hora exatas do servidor.
 
             const values = [userap_id, protocoloFormatado, oco_categoria, oco_descricao, oco_localizacao, "Aberta", oco_prioridade, oco_imagem];
-
             const [result] = await db.query(sqlInsert, values);
 
-            // 5. Retorna a resposta de sucesso com todos os dados, incluindo o novo protocolo.
             const dados = {
                 oco_id: result.insertId,
                 userap_id,
-                oco_protocolo: protocoloFormatado, // Retorna o protocolo que foi gerado
+                oco_protocolo: protocoloFormatado,
                 oco_categoria,
                 oco_descricao,
                 oco_localizacao,
-                oco_data: new Date(), // Retorna a data atual
+                oco_data: new Date(),
                 oco_status: "Aberta",
                 oco_prioridade,
                 oco_imagem
@@ -120,16 +139,12 @@ module.exports = {
         }
     },
 
-    // ... (suas outras funções, como listar, editar, etc., continuam aqui)
-
-    // EDITAR
     // EDITAR
     async editarocorrencias(request, response) {
         try {
             const { id } = request.params;
             const updatedFields = request.body;
 
-            // Construir a parte SET da consulta SQL dinamicamente
             const fieldsToUpdate = Object.keys(updatedFields);
             if (fieldsToUpdate.length === 0) {
                 return response.status(400).json({
@@ -149,7 +164,6 @@ module.exports = {
             `;
 
             values.push(id);
-
             const [result] = await db.query(sql, values);
 
             if (result.affectedRows === 0) {
@@ -160,7 +174,6 @@ module.exports = {
                 });
             }
 
-            // Apenas retorna os campos atualizados para evitar a necessidade de outra busca
             const dados = { oco_id: id, ...updatedFields };
 
             return response.status(200).json({
@@ -181,10 +194,8 @@ module.exports = {
     async apagarocorrencias(request, response) {
         try {
             const { id } = request.params;
-
             const sql = `DELETE FROM ocorrencias WHERE oco_id = ?`;
             const values = [id];
-
             const [result] = await db.query(sql, values);
 
             if (result.affectedRows === 0) {
@@ -209,12 +220,3 @@ module.exports = {
         }
     },
 };
-
-// Adicione este bloco no final do arquivo
-const express = require('express');
-const router = express.Router();
-
-// A rota GET que o seu frontend precisa
-router.get('/ocorrencias', module.exports.listarTodasOcorrencias);
-
-module.exports.router = router;

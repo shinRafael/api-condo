@@ -1,84 +1,119 @@
 const db = require('../dataBase/connection');
 
+// Função auxiliar para agrupar as mensagens em conversas
+const agruparMensagensPorMorador = (mensagens) => {
+    if (!Array.isArray(mensagens) || mensagens.length === 0) {
+        return [];
+    }
+    const conversasMap = new Map();
+    mensagens.forEach(msg => {
+        if (!conversasMap.has(msg.moradorId)) {
+            conversasMap.set(msg.moradorId, {
+                moradorId: msg.moradorId,
+                cond_id: msg.cond_id,
+                moradorNome: msg.moradorNome,
+                apartamento: `Bloco ${msg.blocoNome} - ${msg.apNumero}`,
+                mensagens: [],
+            });
+        }
+        conversasMap.get(msg.moradorId).mensagens.push({
+            id: msg.msg_id,
+            remetente: msg.user_tipo === 'Morador' ? 'morador' : 'sindico',
+            texto: msg.msg_mensagem,
+            data: new Date(msg.msg_data_envio).toLocaleString("pt-BR"),
+            lida: msg.msg_status === 'Lida',
+        });
+    });
+    return Array.from(conversasMap.values());
+};
+
 module.exports = {
     async listamensagens (request, response) {
         try {
-
-            const sql = `SELECT
-             msg_id, cond_id, userap_id, msg_mensagem,
-             msg_data_envio, msg_status
-             FROM mensagens;
-             `;
-            
-
-             const [row] = await db.query(sql);
-             const nItens = row.length;
-
+            const sql = `
+                SELECT 
+                    m.msg_id, m.msg_mensagem, m.msg_data_envio, m.msg_status, m.cond_id,
+                    ua.userap_id AS moradorId,
+                    u.user_nome AS moradorNome, u.user_tipo,
+                    a.ap_numero AS apNumero,
+                    b.bloc_nome AS blocoNome
+                FROM mensagens m
+                JOIN usuario_apartamentos ua ON m.userap_id = ua.userap_id
+                JOIN usuarios u ON ua.user_id = u.user_id
+                JOIN apartamentos a ON ua.ap_id = a.ap_id
+                JOIN bloco b ON a.bloco_id = b.bloc_id
+                ORDER BY m.msg_data_envio ASC;
+            `;
+            const [rows] = await db.query(sql);
+            const conversasAgrupadas = agruparMensagensPorMorador(rows);
             return response.status(200).json({
                 sucesso: true,
-                mensagem: 'Lista de mensagens.',
-                nItens,
-                dados: row
+                mensagem: 'Lista de conversas agrupadas por morador.',
+                dados: conversasAgrupadas
             });
         } catch (error) {
             return response.status(500).json({
                 sucesso: false,
-                mensagem: 'Erro na Listagem de mensagens.',
+                mensagem: 'Erro ao listar mensagens.',
                 dados: error.message
-            
             });
         }   
     },
 
     async cadastrarmensagens (request, response) {
         try {
-            const { cond, userap, mensagem, dt_envio, msg_status} = request.body;
-            const msg_ativa = 1;
+            const { cond_id, userap_id, msg_mensagem } = request.body;
+            
+            if (!cond_id || !userap_id || !msg_mensagem) {
+                return response.status(400).json({sucesso: false, mensagem: "Dados insuficientes."});
+            }
 
-            //introdução SQL
-            const sql = `
-            INSERT INTO mensagens
-             (cond_id, userap_id, msg_mensagem, msg_data_envio, msg_status)
-             VALUES
-                (?, ?, ?, ?, ? );
-             `;
-
-             // definição dos dados a serem inseridos em um array
-             const values = [cond, userap, mensagem, dt_envio, msg_status];
+            const sqlInsert = `
+                INSERT INTO mensagens (cond_id, userap_id, msg_mensagem, msg_data_envio, msg_status)
+                VALUES (?, ?, ?, NOW(), ?);
+            `;
              
-             //execução da instrução sql passando os parametros
-             const [result] = await db.query(sql,values);
+            const values = [cond_id, userap_id, msg_mensagem, 'Enviada'];
+            const [result] = await db.query(sqlInsert, values);
+            const insertedId = result.insertId;
 
-             // indentificação do ID do registro inserido
-             const dados = {
-                id: result.insertID,
-                cond,
-                userap,
-                mensagem,   
-                dt_envio,
-                msg_status
-             }
+            const sqlSelect = `
+                SELECT 
+                    m.msg_id, m.msg_mensagem, m.msg_data_envio, m.msg_status,
+                    ua.userap_id AS moradorId, u.user_nome AS moradorNome, u.user_tipo
+                FROM mensagens m
+                JOIN usuario_apartamentos ua ON m.userap_id = ua.userap_id
+                JOIN usuarios u ON ua.user_id = u.user_id
+                WHERE m.msg_id = ?;
+            `;
+            const [rows] = await db.query(sqlSelect, [insertedId]);
+            const novaMensagemCompleta = rows[0];
+
+            const dados = {
+                id: novaMensagemCompleta.msg_id,
+                remetente: 'sindico',
+                texto: novaMensagemCompleta.msg_mensagem,
+                data: new Date(novaMensagemCompleta.msg_data_envio).toLocaleString("pt-BR"),
+                lida: false
+            };
              
-
-            return response.status(200).json({
+            return response.status(201).json({
                 sucesso: true,
-                mensagem: 'Cadastrar mensagens.',
-                dados
+                mensagem: 'Mensagem enviada com sucesso.',
+                dados: dados
             });
         } catch (error) {
             return response.status(500).json({
                 sucesso: false,
-                mensagem: 'Erro na Listagem de mensagens.',
+                mensagem: 'Erro ao cadastrar mensagem.',
                 dados: error.message
-            
             });
         }   
     },
 
     async editarmensagens (request, response) {
         try {
-            const { cond, userap, mensagem, dt_envio, msg_status} = request.body;
-
+            const { cond_id, userap_id, msg_mensagem, msg_data_envio, msg_status} = request.body;
             const { id } = request.params;
 
             const sql = `
@@ -88,8 +123,7 @@ module.exports = {
                 msg_id = ?;
             `;
 
-            const values = [cond, userap, mensagem, dt_envio, msg_status, id];
-            
+            const values = [cond_id, userap_id, msg_mensagem, msg_data_envio, msg_status, id];
             const [result] = await db.query(sql, values);
 
             if  (result.affectedRows === 0) {
@@ -101,10 +135,10 @@ module.exports = {
             }
 
             const dados = {
-                cond,
-                userap,
-                mensagem,
-                dt_envio,
+                cond_id,
+                userap_id,
+                msg_mensagem,
+                msg_data_envio,
                 msg_status
             };
 
@@ -117,12 +151,12 @@ module.exports = {
         } catch (error) {
             return response.status(500).json({
                 sucesso: false,
-                mensagem: 'Erro na Listagem de mensagens.',
+                mensagem: 'Erro na edição de mensagens.',
                 dados: error.message
-            
             });
         }   
     },
+    
     async apagarmensagens (request, response) {
         try {
             const { id } = request.params;
@@ -148,19 +182,7 @@ module.exports = {
                 sucesso: false,
                 mensagem: 'Erro na requisição de mensagens.',
                 dados: error.message
-            
             });
         }   
     },
-}
-
-// Adicione este bloco no final do arquivo
-const express = require('express');
-const router = express.Router();
-
-// A rota GET que o seu frontend precisa
-router.get('/mensagens', module.exports.listamensagens);
-
-module.exports.router = router;
-
-  
+};

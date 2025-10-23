@@ -1,14 +1,20 @@
 const express = require('express');
-const router =  express.Router();
+const router = express.Router();
 
-const reservas_ambientesController = require('../controllers/reservas_ambientes');
+const blocosController = require('../controllers/blocos');
+const mensagensController = require('../controllers/mensagens');
+const { verificarToken, isSindico, isSindicoOrFuncionario } = require('../middleware/auth');
 
-router.get('/reservas_ambientes', reservas_ambientesController.listarreservas_ambientes);
-router.post('/reservas_ambientes', reservas_ambientesController.cadastrarreservas_ambientes);
-router.patch('/reservas_ambientes/:id', reservas_ambientesController.editarreservas_ambientes);
-router.delete('/reservas_ambientes/:id', reservas_ambientesController.apagarreservas_ambientes);
+// BLOCOS
+router.get('/blocos', verificarToken, isSindicoOrFuncionario, blocosController.listablocos);
+router.post('/blocos', verificarToken, isSindico, blocosController.cadastrarblocos);
+router.patch('/blocos/:id', verificarToken, isSindico, blocosController.editarblocos);
+router.delete('/blocos/:id', verificarToken, isSindico, blocosController.apagarblocos);
 
-
-
+// MENSAGENS
+router.get('/mensagens', verificarToken, isSindicoOrFuncionario, mensagensController.listamensagens);
+router.post('/mensagens', verificarToken, mensagensController.cadastrarmensagens);
+router.patch('/mensagens/:id', verificarToken, mensagensController.editarmensagens);
+router.delete('/mensagens/:id', verificarToken, isSindico, mensagensController.apagarmensagens);
 
 module.exports = router;

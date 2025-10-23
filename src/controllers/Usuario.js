@@ -1,275 +1,266 @@
 const bd = require('../dataBase/connection');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_trocar_em_prod';
 
 module.exports = {
-      async listarUsuario (request, response){
-        try{
-            const sql = 'SELECT user_id, user_nome, user_email, user_telefone, user_tipo FROM Usuarios';
-            const [rows] = await bd.query(sql);
-    
-            return response.status(200).json({
-                sucesso: true,
-                nmensagem: 'Lista de usuários.',
-                dados: rows
-            });
-        } catch (error){
-            return response.status(500).json({
-                sucesso: false,
-                nmensagem: 'Erro na listagem de usuários.',
-                dados: error.message
-            });
-        }
-    },
-    // =============================================================
-    // FUNÇÃO PARA BUSCAR O PERFIL COMPLETO (ID NA URL)
-    // =============================================================
-async buscarPerfilCompleto(request, response) {
+
+  // ============================================================
+  // LISTAR TODOS OS USUÁRIOS (Apenas Síndico ou Funcionário)
+  // ============================================================
+  async listarUsuario(request, response) {
     try {
-        const userId = request.params.id;
+      const sql = `
+        SELECT 
+          user_id, user_nome, user_email, user_telefone, user_tipo 
+        FROM Usuarios
+        ORDER BY user_nome ASC;
+      `;
+      const [rows] = await bd.query(sql);
 
-        if (!userId) {
-            return response.status(400).json({
-                sucesso: false,
-                mensagem: 'ID do usuário não fornecido.'
-            });
-        }
-
-        // Query completa com JOINS para buscar todos os dados necessários
-        const sql = `
-            SELECT 
-                u.user_id,
-                u.user_nome,
-                u.user_email,
-                u.user_telefone,
-                u.user_tipo,
-                u.user_push_token,
-                u.user_data_cadastro,
-                ua.userap_id,
-                a.ap_id,
-                a.ap_numero,
-                a.ap_andar,
-                b.bloc_id,
-                b.bloc_nome,
-                c.cond_id,
-                c.cond_nome,
-                c.cond_endereco,
-                c.cond_cidade,
-                c.cond_estado
-            FROM usuarios u
-            LEFT JOIN usuario_apartamentos ua ON u.user_id = ua.user_id
-            LEFT JOIN apartamentos a ON ua.ap_id = a.ap_id
-            LEFT JOIN bloco b ON a.bloco_id = b.bloc_id
-            LEFT JOIN condominio c ON b.cond_id = c.cond_id
-            WHERE u.user_id = ?
-            LIMIT 1
-        `;
-
-        const [rows] = await bd.query(sql, [userId]);
-
-        if (rows.length === 0) {
-            return response.status(404).json({
-                sucesso: false,
-                mensagem: 'Usuário não encontrado.'
-            });
-        }
-
-        const perfil = rows[0];
-        
-        // Remove senha se existir (segurança)
-        if (perfil.user_senha) delete perfil.user_senha;
-
-        return response.status(200).json({
-            sucesso: true,
-            mensagem: 'Perfil do usuário carregado com sucesso.',
-            dados: perfil
-        });
-
+      return response.status(200).json({
+        sucesso: true,
+        mensagem: 'Usuários listados com sucesso.',
+        dados: rows
+      });
     } catch (error) {
-        console.error('❌ Erro ao buscar perfil completo:', error);
-        return response.status(500).json({
-            sucesso: false,
-            mensagem: 'Erro interno do servidor ao buscar perfil completo.',
-            erro: error.message
+      console.error('Erro ao listar usuários:', error);
+      return response.status(500).json({
+        sucesso: false,
+        mensagem: 'Erro interno ao listar usuários.'
+      });
+    }
+  },
+
+  // ============================================================
+  // BUSCAR PERFIL COMPLETO (Apenas logado / cada um pode ver o seu)
+  // ============================================================
+  async buscarPerfilCompleto(request, response) {
+    try {
+      const { id } = request.params;
+
+      // Apenas o próprio usuário ou um síndico pode ver o perfil
+      if (request.user.userType === 'Morador' && Number(request.user.userId) !== Number(id)) {
+        return response.status(403).json({
+          sucesso: false,
+          mensagem: 'Acesso negado. Moradores só podem ver o próprio perfil.'
         });
+      }
+
+      const sql = `
+        SELECT 
+          u.user_id, u.user_nome, u.user_email, u.user_telefone, u.user_tipo,
+          ua.userap_id, ua.ap_id
+        FROM Usuarios u
+        LEFT JOIN Usuario_Apartamentos ua ON u.user_id = ua.user_id
+        WHERE u.user_id = ?;
+      `;
+      const [rows] = await bd.query(sql, [id]);
+
+      if (rows.length === 0) {
+        return response.status(404).json({
+          sucesso: false,
+          mensagem: 'Usuário não encontrado.'
+        });
+      }
+
+      return response.status(200).json({
+        sucesso: true,
+        mensagem: 'Perfil obtido com sucesso.',
+        dados: rows[0]
+      });
+    } catch (error) {
+      console.error('Erro ao buscar perfil:', error);
+      return response.status(500).json({
+        sucesso: false,
+        mensagem: 'Erro interno ao buscar perfil.'
+      });
     }
-},
+  },
 
-    async cadastrarUsuario (request, response){
-        try{
-            const { user_nome, user_email, user_telefone, user_senha, user_tipo } = request.body;
-            
-            // --- MUDANÇA: Adicionamos o user_push_token como nulo ---
-            // Isso garante que o campo seja preenchido no banco de dados.
-            const user_push_token = null; 
+  // ============================================================
+  // CADASTRAR NOVO USUÁRIO
+  // ============================================================
+  async cadastrarUsuario(request, response) {
+    try {
+      const { user_nome, user_email, user_telefone, user_senha, user_tipo } = request.body;
 
-            if (user_tipo === 'ADM') {
-                return response.status(403).json({
-                    sucesso: false,
-                    nmensagem: 'A criação de novos administradores não é permitida.'
-                });
-            }
+      if (!user_nome || !user_email || !user_senha || !user_tipo) {
+        return response.status(400).json({
+          sucesso: false,
+          mensagem: 'Preencha todos os campos obrigatórios.',
+        });
+      }
 
-            // --- MUDANÇA: Adicionamos a nova coluna no INSERT ---
-            const sql = `
-                INSERT INTO usuarios (user_nome, user_email, user_telefone, user_senha, user_tipo, user_push_token)
-                VALUES (?, ?, ?, ?, ?, ?);
-            `;
-            
-            // --- MUDANÇA: Adicionamos o valor nulo no array de valores ---
-            const values = [user_nome, user_email, user_telefone, user_senha, user_tipo, user_push_token];
-            const [result] = await bd.query(sql, values);
-            
-            const dados = {
-                user_id: result.insertId,
-                user_nome,
-                user_email,
-                user_tipo,
-            };            
+      const [existente] = await bd.query('SELECT * FROM Usuarios WHERE user_email = ?', [user_email]);
+      if (existente.length > 0) {
+        return response.status(400).json({
+          sucesso: false,
+          mensagem: 'E-mail já cadastrado.',
+        });
+      }
 
-            return response.status(201).json({
-                sucesso: true,
-                nmensagem: 'Usuário cadastrado com sucesso.',
-                dados: dados
-            });
-        } catch (error){
-            // Log do erro no console da API para depuração
-            console.error("Erro no controller ao cadastrar:", error); 
-            return response.status(500).json({
-                sucesso: false,
-                nmensagem: 'Erro ao cadastrar usuário.',
-                dados: error.message
-            });
-        }
-    },
+      const salt = await bcrypt.genSalt(10);
+      const senhaHash = await bcrypt.hash(user_senha, salt);
 
-    async editarUsuario(request, response) {
-        try {
-          const { id } = request.params;
-          const { user_nome, user_email, user_telefone, user_senha, user_tipo } = request.body;
+      const sql = `
+        INSERT INTO Usuarios (user_nome, user_email, user_telefone, user_senha, user_tipo, user_push_token)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `;
+      const values = [user_nome, user_email, user_telefone, senhaHash, user_tipo, null];
+      const [result] = await bd.query(sql, values);
 
-          if (user_tipo === 'ADM') {
-              return response.status(403).json({
-                  sucesso: false,
-                  nmensagem: 'Não é permitido alterar um usuário para o tipo ADM.'
-              });
-          }
-      
-          let sql;
-          let values;
-          // Se uma nova senha foi enviada, o SQL inclui o campo da senha
-          if (user_senha) {
-            sql = `UPDATE usuarios SET user_nome = ?, user_email = ?, user_telefone = ?, user_senha = ?, user_tipo = ? WHERE user_id = ?`;
-            values = [user_nome, user_email, user_telefone, user_senha, user_tipo, id];
-          } else { // Senão, o SQL não mexe na senha atual
-            sql = `UPDATE usuarios SET user_nome = ?, user_email = ?, user_telefone = ?, user_tipo = ? WHERE user_id = ?`;
-            values = [user_nome, user_email, user_telefone, user_tipo, id];
-          }
-      
-          const [result] = await bd.query(sql, values);
-      
-          if (result.affectedRows === 0) {
-            return response.status(404).json({
-              sucesso: false,
-              nmensagem: 'Usuário não encontrado para atualizar.',
-            });
-          }
-      
-          return response.status(200).json({
-            sucesso: true,
-            nmensagem: 'Usuário atualizado com sucesso.',
-          });
-        } catch (error) {
-          return response.status(500).json({
-            sucesso: false,
-            nmensagem: 'Erro ao atualizar o usuário.',
-            dados: error.message
-          });
-        }
-    },
-      
-    async apagarUsuario(request, response) {
-        try {
-          const { id } = request.params;
-          const sql = 'DELETE FROM usuarios WHERE user_id = ?';
-          const [result] = await bd.query(sql, [id]);
-      
-          if (result.affectedRows === 0) {
-            return response.status(404).json({
-              sucesso: false,
-              nmensagem: 'Usuário não encontrado para deletar.',
-            });
-          }
-      
-          return response.status(200).json({
-            sucesso: true,
-            nmensagem: 'Usuário deletado com sucesso.',
-          });
-        } catch (error) {
-          return response.status(500).json({
-            sucesso: false,
-            nmensagem: 'Erro ao deletar o usuário.',
-            dados: error.message
-          });
-        }
-    },
-
-      async loginUsuario(request, response) {
-        try {
-            const { user_email, user_senha } = request.body;
-
-            // 1. Validação básica de entrada
-            if (!user_email || !user_senha) {
-                return response.status(400).json({
-                    sucesso: false,
-                    mensagem: "E-mail e senha são obrigatórios."
-                });
-            }
-
-            // SQL com JOIN para buscar os dados do usuário e o userap_id
-            const sql = `
-                SELECT 
-                    u.user_id, u.user_nome, u.user_email, u.user_telefone, u.user_tipo,
-                    ua.userap_id 
-                FROM 
-                    Usuarios u
-                JOIN 
-                    Usuario_Apartamentos ua ON u.user_id = ua.user_id
-                WHERE 
-                    u.user_email = ? AND u.user_senha = ?;
-            `;
-            
-            const values = [user_email, user_senha];
-            
-            // ATENÇÃO: Em um projeto real, a senha nunca deve ser armazenada como texto puro.
-            // Você deve usar uma biblioteca como 'bcrypt' para comparar a senha enviada com um 'hash' salvo no banco.
-
-            const [rows] = await bd.query(sql, values);
-
-            // 3. Verifica se o usuário foi encontrado
-            if (rows.length === 0) {
-                return response.status(401).json({
-                    sucesso: false,
-                    mensagem: 'E-mail ou senha inválidos.'
-                });
-            }
-
-            const usuario = rows[0];
-            
-            // 4. Remove a senha do objeto antes de enviar a resposta
-            delete usuario.user_senha;
-
-            return response.status(200).json({
-                sucesso: true,
-                mensagem: 'Login bem-sucedido.',
-                dados: usuario
-            });
-
-        } catch (error) {
-            return response.status(500).json({
-                sucesso: false,
-                mensagem: 'Erro interno no servidor ao tentar fazer login.',
-                dados: error.message
-            });
-        }
+      return response.status(201).json({
+        sucesso: true,
+        mensagem: 'Usuário cadastrado com sucesso!',
+        dados: { id: result.insertId, user_nome, user_email, user_tipo },
+      });
+    } catch (error) {
+      console.error('Erro ao cadastrar usuário:', error);
+      return response.status(500).json({
+        sucesso: false,
+        mensagem: 'Erro interno ao cadastrar usuário.',
+      });
     }
-}
-//ola
+  },
+
+  // ============================================================
+  // EDITAR USUÁRIO
+  // ============================================================
+  async editarUsuario(request, response) {
+    try {
+      const { id } = request.params;
+      const { user_nome, user_email, user_telefone, user_senha, user_tipo } = request.body;
+
+      let sql, values;
+
+      if (user_senha) {
+        const salt = await bcrypt.genSalt(10);
+        const senhaHash = await bcrypt.hash(user_senha, salt);
+        sql = `
+          UPDATE Usuarios 
+          SET user_nome = ?, user_email = ?, user_telefone = ?, user_senha = ?, user_tipo = ?
+          WHERE user_id = ?
+        `;
+        values = [user_nome, user_email, user_telefone, senhaHash, user_tipo, id];
+      } else {
+        sql = `
+          UPDATE Usuarios 
+          SET user_nome = ?, user_email = ?, user_telefone = ?, user_tipo = ?
+          WHERE user_id = ?
+        `;
+        values = [user_nome, user_email, user_telefone, user_tipo, id];
+      }
+
+      await bd.query(sql, values);
+      return response.status(200).json({
+        sucesso: true,
+        mensagem: 'Usuário atualizado com sucesso.',
+      });
+    } catch (error) {
+      console.error('Erro ao editar usuário:', error);
+      return response.status(500).json({
+        sucesso: false,
+        mensagem: 'Erro interno ao editar usuário.',
+      });
+    }
+  },
+
+  // ============================================================
+  // APAGAR USUÁRIO (Apenas Síndico)
+  // ============================================================
+  async apagarUsuario(request, response) {
+    try {
+      const { id } = request.params;
+
+      const [user] = await bd.query('SELECT * FROM Usuarios WHERE user_id = ?', [id]);
+      if (user.length === 0) {
+        return response.status(404).json({
+          sucesso: false,
+          mensagem: 'Usuário não encontrado.',
+        });
+      }
+
+      await bd.query('DELETE FROM Usuarios WHERE user_id = ?', [id]);
+
+      return response.status(200).json({
+        sucesso: true,
+        mensagem: 'Usuário removido com sucesso.',
+      });
+    } catch (error) {
+      console.error('Erro ao apagar usuário:', error);
+      return response.status(500).json({
+        sucesso: false,
+        mensagem: 'Erro interno ao apagar usuário.',
+      });
+    }
+  },
+
+  // ============================================================
+  // LOGIN USUÁRIO
+  // ============================================================
+  async loginUsuario(request, response) {
+    try {
+      const { user_email, user_senha } = request.body;
+
+      if (!user_email || !user_senha) {
+        return response.status(400).json({
+          sucesso: false,
+          mensagem: 'E-mail e senha são obrigatórios.',
+        });
+      }
+
+      const sqlFindUser = `
+        SELECT 
+          u.user_id, u.user_nome, u.user_email, u.user_telefone, u.user_tipo, 
+          u.user_senha, ua.userap_id 
+        FROM Usuarios u
+        LEFT JOIN Usuario_Apartamentos ua ON u.user_id = ua.user_id
+        WHERE u.user_email = ?
+      `;
+      const [rows] = await bd.query(sqlFindUser, [user_email]);
+
+      if (rows.length === 0) {
+        return response.status(401).json({
+          sucesso: false,
+          mensagem: 'E-mail ou senha inválidos.',
+        });
+      }
+
+      const usuario = rows[0];
+      const senhaCorreta = await bcrypt.compare(user_senha, usuario.user_senha);
+
+      if (!senhaCorreta) {
+        return response.status(401).json({
+          sucesso: false,
+          mensagem: 'E-mail ou senha inválidos.',
+        });
+      }
+
+      const payload = {
+        userId: usuario.user_id,
+        userType: usuario.user_tipo,
+        userApId: usuario.userap_id || null,
+      };
+
+      const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '8h' });
+      delete usuario.user_senha;
+
+      return response.status(200).json({
+        sucesso: true,
+        mensagem: 'Login bem-sucedido.',
+        dados: {
+          usuario,
+          token,
+        },
+      });
+    } catch (error) {
+      console.error('Erro ao fazer login:', error);
+      return response.status(500).json({
+        sucesso: false,
+        mensagem: 'Erro interno ao fazer login.',
+      });
+    }
+  },
+};

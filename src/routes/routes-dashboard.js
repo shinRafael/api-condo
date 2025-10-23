@@ -1,14 +1,10 @@
-// Arquivo: src/routes/routes-dashboard.js
-// (Crie este novo arquivo)
-
 const express = require('express');
 const router = express.Router();
 
-// Importa o CONTROLLER (o objeto com a lógica)
-const dashboardController = require('../controllers/dashboard');
+const dashboardController = require('../controllers/dashboard'); // ✅ adicionado
+const { verificarToken, isMorador } = require('../middleware/auth');
 
-// Define a rota e liga ela à função do controller
-router.get('/dashboard/updates/:userap_id', dashboardController.getLatestUpdates);
+// Rota de atualizações do app do morador
+router.get('/dashboard/updates/:userap_id', verificarToken, isMorador, dashboardController.getLatestUpdates);
 
-// Exporta APENAS o router. É isso que o routes.js precisa.
 module.exports = router;

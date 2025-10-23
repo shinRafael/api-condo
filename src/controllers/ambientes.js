@@ -70,35 +70,35 @@ module.exports ={
             });
         }
     },
-            async editarAmbientes (request, response) {
-                try {
-        const { nome, descricao, capacidade } = request.body;
-        const { id } = request.params;
+    async editarAmbientes(request, response) {
+        try {
+            const { nome, descricao, capacidade } = request.body;
+            const { id } = request.params;
 
-        const sql = `
+            const sql = `
             UPDATE ambientes SET
             amd_nome = ?, amd_descricao = ?, amd_capacidade = ?
             WHERE amd_id = ?;
         `;
 
-        const values = [nome, descricao, capacidade, id];
+            const values = [nome, descricao, capacidade, id];
 
 
-                const [result] = await db.query(sql, values);
+            const [result] = await db.query(sql, values);
 
-                if (result.affectedRows ===0) {
-                    return response.status(404).json({
-                        sucesso : false,
-                        mensagem: `Ambiente ${id} não encontrado!`,
-                        dados : null
-                    })
-                }
-                
-                const dados = {
-                    nome,
-                    descricao,
-                    capacidade
-                };
+            if (result.affectedRows === 0) {
+                return response.status(404).json({
+                    sucesso: false,
+                    mensagem: `Ambiente ${id} não encontrado!`,
+                    dados: null
+                })
+            }
+
+            const dados = {
+                nome,
+                descricao,
+                capacidade
+            };
 
             return response.status(200).json({
                 sucesso: true,
@@ -110,10 +110,11 @@ module.exports ={
                 sucesso: false,
                 mensagem: 'Erro na edição de Ambientes.',
                 dados: error.message
-            
+
             });
-        }   
+        }
     },
+    //Responsavel por apagar ambientes caso seja necessario, como em casos de obra ou algo similiar.
     async apagarAmbientes (request, response) {
         try {
 

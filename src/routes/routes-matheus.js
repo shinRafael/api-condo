@@ -2,52 +2,30 @@ const express = require('express');
 const router = express.Router();
 
 const apartamentoController = require('../controllers/apartamentos');
-
 const visitantesController = require('../controllers/visitantes');
+const { verificarToken, isSindico, isSindicoOrFuncionario, isMorador } = require('../middleware/auth');
 
-// ROTAS APARTAMENTOS
+// ============================================================
+// ROTAS APARTAMENTOS (Apenas Síndico)
+// ============================================================
+router.get('/apartamentos', verificarToken, isSindico, apartamentoController.listarApartamentos);
+router.post('/apartamentos', verificarToken, isSindico, apartamentoController.cadastrarApartamentos);
+router.patch('/apartamentos/:id', verificarToken, isSindico, apartamentoController.editarApartamentos);
+router.delete('/apartamentos/:id', verificarToken, isSindico, apartamentoController.apagarApartamentos);
 
-router.get('/apartamentos', apartamentoController.listarApartamentos);
+// ============================================================
+// ROTAS VISITANTES (Morador)
+// ============================================================
+router.post('/visitantes', verificarToken, isMorador, visitantesController.cadastrarAutorizacao);
+router.get('/visitantes', verificarToken, isMorador, visitantesController.listarVisitantes);
+router.patch('/visitantes/:id/cancelar', verificarToken, isMorador, visitantesController.cancelarAutorizacao);
 
-router.post('/apartamentos', apartamentoController.cadastrarApartamentos);
-
-router.patch('/apartamentos/:id', apartamentoController.editarApartamentos);
-
-router.delete('/apartamentos/:id', apartamentoController.apagarApartamentos);
-
-// ROTAS VISITANTES 
-
-
-// ======================================================
-// ==               ROTAS PARA O MORADOR               ==
-// ======================================================
-
-// Rota para o morador criar uma nova autorização de visitante
-router.post('/visitantes', visitantesController.cadastrarAutorizacao);
-
-// Rota para o morador listar as suas autorizações
-router.get('/visitantes', visitantesController.listarVisitantes);
-
-// Rota para o morador cancelar uma autorização que ainda está "Aguardando"
-router.patch('/visitantes/:id/cancelar', visitantesController.cancelarAutorizacao);
-
-
-// ======================================================
-// ==              ROTAS PARA A PORTARIA               ==
-// ======================================================
-
-// Rota para o painel da portaria listar os visitantes esperados para o dia
-router.get('/visitantes/dashboard', visitantesController.listarVisitantesParaDashboard);
-
-// Rota para a portaria registrar a ENTRADA de um visitante
-router.put('/visitantes/:id/entrada', visitantesController.registrarEntrada);
-
-// Rota para a portaria registar a SAÍDA de um visitante
-router.put('/visitantes/:id/saida', visitantesController.registrarSaida);
-
-// ROTA ADICIONADA: Notificar morador sobre um visitante inesperado
-router.post('/moradores/:userap_id/notificar-visitante', visitantesController.notificarVisitanteInesperado);
-
+// ============================================================
+// ROTAS VISITANTES (Portaria / Gestão)
+// ============================================================
+router.get('/visitantes/dashboard', verificarToken, isSindicoOrFuncionario, visitantesController.listarVisitantesParaDashboard);
+router.put('/visitantes/:id/entrada', verificarToken, isSindicoOrFuncionario, visitantesController.registrarEntrada);
+router.put('/visitantes/:id/saida', verificarToken, isSindicoOrFuncionario, visitantesController.registrarSaida);
+router.post('/moradores/:userap_id/notificar-visitante', verificarToken, isSindicoOrFuncionario, visitantesController.notificarVisitanteInesperado);
 
 module.exports = router;
-

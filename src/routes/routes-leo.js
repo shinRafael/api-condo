@@ -2,20 +2,24 @@ const express = require('express');
 const router = express.Router();
 
 const UsuarioController = require('../controllers/Usuario');
-const verificarToken = require('../middleware/auth'); // Importe o middleware
+const { verificarToken, isSindico, isSindicoOrFuncionario, isMorador } = require('../middleware/auth');
 
-// Rota de login continua pública
+// Login público
 router.post('/Usuario/login', UsuarioController.loginUsuario);
-// =============================================================
-// NOVA ROTA PARA OBTER O PERFIL DO USUÁRIO (SEM MIDDLEWARE)
-// =============================================================
-router.get('/usuario/perfil/:id', UsuarioController.buscarPerfilCompleto);
 
-// --- MUDANÇA: Aplicamos o middleware que libera o acesso ---
-// Isso força a rota a ser pública durante o desenvolvimento.
-router.get('/Usuario', verificarToken, UsuarioController.listarUsuario);
-router.post('/Usuario', verificarToken, UsuarioController.cadastrarUsuario);
-router.patch('/Usuario/:id', verificarToken, UsuarioController.editarUsuario);
-router.delete('/Usuario/:id', verificarToken, UsuarioController.apagarUsuario);
+// Perfil do usuário (qualquer logado)
+router.get('/usuario/perfil/:id', verificarToken, UsuarioController.buscarPerfilCompleto);
+
+// Listar todos os usuários (Síndico e Funcionário)
+router.get('/Usuario', verificarToken, isSindicoOrFuncionario, UsuarioController.listarUsuario);
+
+// Cadastrar usuário (Apenas Síndico)
+router.post('/Usuario', verificarToken, isSindico, UsuarioController.cadastrarUsuario);
+
+// Editar usuário (Apenas Síndico)
+router.patch('/Usuario/:id', verificarToken, isSindico, UsuarioController.editarUsuario);
+
+// Apagar usuário (Apenas Síndico)
+router.delete('/Usuario/:id', verificarToken, isSindico, UsuarioController.apagarUsuario);
 
 module.exports = router;

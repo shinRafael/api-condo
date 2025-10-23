@@ -62,7 +62,7 @@ CREATE TABLE Gerenciamento (
     cond_id INT NOT NULL,
     ger_data DATE,
     ger_descricao VARCHAR(60),
-    ger_valor DECIMAL(10,3),
+    ger_valor DECIMAL(10,2),
     FOREIGN KEY (cond_id) REFERENCES Condominio(cond_id)
 ) ENGINE=InnoDB;
 

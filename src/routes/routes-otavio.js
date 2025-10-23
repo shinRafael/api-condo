@@ -1,38 +1,13 @@
 const express = require('express');
 const router = express.Router();
 
-const NotificacaoController = require('../controllers/notificacao');
+const reservas_ambientesController = require('../controllers/reservas_ambientes');
+const { verificarToken, isSindico, isSindicoOrFuncionario, isMorador } = require('../middleware/auth');
 
-// ==================================================================
-// ROTAS PARA O PAINEL WEB (VISÃO AGRUPADA)
-// ==================================================================
-
-// Rota para buscar a lista de envios de forma agrupada
-router.get('/notificacoes/envios', NotificacaoController.listarEnviosAgrupados);
-
-// Rota para editar um grupo inteiro de notificações
-router.patch('/notificacoes/envio', NotificacaoController.editarEnvioAgrupado);
-
-// Rota para apagar um grupo inteiro de notificações
-router.delete('/notificacoes/envio', NotificacaoController.apagarEnvioAgrupado);
-
-// Rota para o DASHBOARD do app (Avisos Urgentes)
-router.get('/notificacoes/importantes', NotificacaoController.listarAvisosImportantes);
-
-// Rota para o APP (Listar "Minhas Notificações")
-router.get('/notificacao/:userap_id', NotificacaoController.listarnotificacao);
-
-// Rota para o APP (Marcar notificação como lida)
-router.patch('/notificacao/:not_id/lida', NotificacaoController.marcarComoLida);
-
-// Rota para o PAINEL WEB (Criar novas notificações)
-router.post('/notificacao', NotificacaoController.cadastrarnotificacao);
-
-// ===== ADICIONE A ROTA DE EDITAR AQUI =====
-// Rota para o PAINEL WEB (Editar uma notificação existente)
-router.patch('/notificacao/:id', NotificacaoController.editarnotificacao);
-
-// Rota para o PAINEL WEB (Apagar uma notificação)
-router.delete('/notificacao/:id', NotificacaoController.apagarnotificacao);
+// Reservas de Ambientes
+router.get('/reservas_ambientes', verificarToken, isSindicoOrFuncionario, reservas_ambientesController.listarreservas_ambientes);
+router.post('/reservas_ambientes', verificarToken, isMorador, reservas_ambientesController.cadastrarreservas_ambientes);
+router.patch('/reservas_ambientes/:id', verificarToken, reservas_ambientesController.editarreservas_ambientes);
+router.delete('/reservas_ambientes/:id', verificarToken, isSindico, reservas_ambientesController.apagarreservas_ambientes);
 
 module.exports = router;

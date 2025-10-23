@@ -1,13 +1,20 @@
 const express = require('express');
 const router = express.Router();
 
-const reservas_ambientesController = require('../controllers/reservas_ambientes');
+const NotificacaoController = require('../controllers/notificacao');
 const { verificarToken, isSindico, isSindicoOrFuncionario, isMorador } = require('../middleware/auth');
 
-// Reservas de Ambientes
-router.get('/reservas_ambientes', verificarToken, isSindicoOrFuncionario, reservas_ambientesController.listarreservas_ambientes);
-router.post('/reservas_ambientes', verificarToken, isMorador, reservas_ambientesController.cadastrarreservas_ambientes);
-router.patch('/reservas_ambientes/:id', verificarToken, reservas_ambientesController.editarreservas_ambientes);
-router.delete('/reservas_ambientes/:id', verificarToken, isSindico, reservas_ambientesController.apagarreservas_ambientes);
+// WEB (Gestão)
+router.get('/notificacoes/envios', verificarToken, isSindicoOrFuncionario, NotificacaoController.listarEnviosAgrupados);
+router.patch('/notificacoes/envio', verificarToken, isSindicoOrFuncionario, NotificacaoController.editarEnvioAgrupado);
+router.delete('/notificacoes/envio', verificarToken, isSindico, NotificacaoController.apagarEnvioAgrupado);
+router.post('/notificacao', verificarToken, isSindicoOrFuncionario, NotificacaoController.cadastrarnotificacao);
+router.patch('/notificacao/:id', verificarToken, isSindicoOrFuncionario, NotificacaoController.editarnotificacao);
+router.delete('/notificacao/:id', verificarToken, isSindico, NotificacaoController.apagarnotificacao);
+
+// APP (Morador)
+router.get('/notificacoes/importantes', verificarToken, isMorador, NotificacaoController.listarAvisosImportantes);
+router.get('/notificacao/:userap_id', verificarToken, isMorador, NotificacaoController.listarnotificacao);
+router.patch('/notificacao/:not_id/lida', verificarToken, isMorador, NotificacaoController.marcarComoLida);
 
 module.exports = router;

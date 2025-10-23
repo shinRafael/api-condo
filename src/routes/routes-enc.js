@@ -5,7 +5,7 @@ const encomendasController = require('../controllers/encomendas');
 const ocorrenciasController = require('../controllers/ocorrencias');
 const documentosController = require('../controllers/documentos');
 
-// ✅ Adicione este import completo:
+// ✅ Importação correta dos middlewares
 const { verificarToken, isSindico, isSindicoOrFuncionario, isMorador } = require('../middleware/auth');
 
 // ============================================================

@@ -1,31 +1,13 @@
 const express = require('express');
 const router = express.Router();
 
-const apartamentoController = require('../controllers/apartamentos');
-const visitantesController = require('../controllers/visitantes');
+const reservas_ambientesController = require('../controllers/reservas_ambientes');
 const { verificarToken, isSindico, isSindicoOrFuncionario, isMorador } = require('../middleware/auth');
 
-// ============================================================
-// ROTAS APARTAMENTOS (Apenas Síndico)
-// ============================================================
-router.get('/apartamentos', verificarToken, isSindico, apartamentoController.listarApartamentos);
-router.post('/apartamentos', verificarToken, isSindico, apartamentoController.cadastrarApartamentos);
-router.patch('/apartamentos/:id', verificarToken, isSindico, apartamentoController.editarApartamentos);
-router.delete('/apartamentos/:id', verificarToken, isSindico, apartamentoController.apagarApartamentos);
-
-// ============================================================
-// ROTAS VISITANTES (Morador)
-// ============================================================
-router.post('/visitantes', verificarToken, isMorador, visitantesController.cadastrarAutorizacao);
-router.get('/visitantes', verificarToken, isMorador, visitantesController.listarVisitantes);
-router.patch('/visitantes/:id/cancelar', verificarToken, isMorador, visitantesController.cancelarAutorizacao);
-
-// ============================================================
-// ROTAS VISITANTES (Portaria / Gestão)
-// ============================================================
-router.get('/visitantes/dashboard', verificarToken, isSindicoOrFuncionario, visitantesController.listarVisitantesParaDashboard);
-router.put('/visitantes/:id/entrada', verificarToken, isSindicoOrFuncionario, visitantesController.registrarEntrada);
-router.put('/visitantes/:id/saida', verificarToken, isSindicoOrFuncionario, visitantesController.registrarSaida);
-router.post('/moradores/:userap_id/notificar-visitante', verificarToken, isSindicoOrFuncionario, visitantesController.notificarVisitanteInesperado);
+// Reservas de Ambientes
+router.get('/reservas_ambientes', verificarToken, isSindicoOrFuncionario, reservas_ambientesController.listarreservas_ambientes);
+router.post('/reservas_ambientes', verificarToken, isMorador, reservas_ambientesController.cadastrarreservas_ambientes);
+router.patch('/reservas_ambientes/:id', verificarToken, reservas_ambientesController.editarreservas_ambientes);
+router.delete('/reservas_ambientes/:id', verificarToken, isSindico, reservas_ambientesController.apagarreservas_ambientes);
 
 module.exports = router;

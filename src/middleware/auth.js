@@ -63,7 +63,11 @@ function verificarToken(request, response, next) {
 
 // Apenas Síndico
 const isSindico = (request, response, next) => {
-  if (request.user && request.user.userType === 'Sindico') return next();
+  console.log('🔐 [AUTH] Verificando acesso de Síndico...', { userType: request.user?.userType });
+  
+  if (request.user && request.user.userType === 'Sindico') {
+    return next();
+  }
 
   return response.status(403).json({
     sucesso: false,
@@ -73,11 +77,14 @@ const isSindico = (request, response, next) => {
 
 // Síndico OU Funcionário (porteiro)
 const isSindicoOrFuncionario = (request, response, next) => {
+  console.log('🔐 [AUTH] Verificando acesso de Síndico/Funcionário...', { userType: request.user?.userType });
+  
   if (
     request.user &&
     (request.user.userType === 'Sindico' || request.user.userType === 'Funcionario')
-  )
+  ) {
     return next();
+  }
 
   return response.status(403).json({
     sucesso: false,
@@ -87,7 +94,11 @@ const isSindicoOrFuncionario = (request, response, next) => {
 
 // Apenas Morador
 const isMorador = (request, response, next) => {
-  if (request.user && request.user.userType === 'Morador') return next();
+  console.log('🔐 [AUTH] Verificando acesso de Morador...', { userType: request.user?.userType });
+  
+  if (request.user && request.user.userType === 'Morador') {
+    return next();
+  }
 
   return response.status(403).json({
     sucesso: false,

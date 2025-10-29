@@ -182,6 +182,7 @@ CREATE TABLE Ocorrencias (
     FOREIGN KEY (userap_id) REFERENCES Usuario_Apartamentos(userap_id)
 ) ENGINE=InnoDB;
 
+
 -- 14 - DOCUMENTOS
 CREATE TABLE Documentos (
     doc_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -193,3 +194,17 @@ CREATE TABLE Documentos (
     doc_url VARCHAR(255) NOT NULL,
     FOREIGN KEY (cond_id) REFERENCES Condominio(cond_id)
 ) ENGINE=InnoDB;
+
+-- 15 - OCORRENCIA_MENSAGENS (Nova Tabela para Mensagens das Ocorrências)
+CREATE TABLE Ocorrencia_Mensagens (
+    ocomsg_id INT AUTO_INCREMENT PRIMARY KEY,
+    oco_id INT NOT NULL,
+    user_id INT NOT NULL, 
+    ocomsg_mensagem TEXT NOT NULL,
+    ocomsg_data_envio DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ocomsg_lida TINYINT(1) DEFAULT 0, 
+    FOREIGN KEY (oco_id) REFERENCES Ocorrencias(oco_id) ON DELETE CASCADE, 
+    FOREIGN KEY (user_id) REFERENCES Usuarios(user_id)
+) ENGINE=InnoDB;
+
+CREATE INDEX idx_oco_id ON Ocorrencia_Mensagens (oco_id);

@@ -26,6 +26,10 @@ router.post('/ocorrencias', verificarToken, isMorador, ocorrenciasController.cad
 router.patch('/ocorrencias/:id', verificarToken, isSindicoOrFuncionario, ocorrenciasController.editarocorrencias);
 router.delete('/ocorrencias/:id', verificarToken, isSindico, ocorrenciasController.apagarocorrencias);
 
+// --- NOVAS ROTAS: MENSAGENS DAS OCORRÊNCIAS ---
+router.get('/ocorrencias/:id/mensagens', ocorrenciasController.listarMensagensDaOcorrencia);
+router.post('/ocorrencias/:id/mensagens', ocorrenciasController.enviarMensagemParaOcorrencia);
+
 // ============================================================
 // DOCUMENTOS
 // ============================================================

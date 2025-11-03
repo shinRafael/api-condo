@@ -1,18 +1,5 @@
 const db = require('../dataBase/connection');
-const { randomUUID } = require('crypto'); // Usando crypto.randomUUID() em vez de uuid
-
-// Função para formatar telefone brasileiro: (XX) XXXXX-XXXX
-function formatarTelefone(telefone) {
-  if (!telefone) return null;
-  // Remove todos os caracteres não numéricos
-  const numeroLimpo = telefone.replace(/\D/g, '');
-  // Verifica se tem 11 dígitos (com DDD)
-  if (numeroLimpo.length === 11) {
-    return `(${numeroLimpo.slice(0, 2)}) ${numeroLimpo.slice(2, 7)}-${numeroLimpo.slice(7)}`;
-  }
-  // Se não tiver 11 dígitos, retorna como está (ou pode ajustar para outros formatos)
-  return telefone;
-}
+const { v4: uuidv4 } = require('uuid'); // Importe uma biblioteca para gerar IDs únicos
 
 module.exports = {
 
@@ -26,7 +13,6 @@ module.exports = {
         SELECT 
           vst_id, 
           vst_nome, 
-          vst_telefone,
           vst_status,
           vst_data_entrada,
           vst_data_saida
@@ -69,7 +55,6 @@ module.exports = {
           vst_id, 
           userap_id,
           vst_nome, 
-          vst_telefone,
           vst_documento, 
           vst_validade_inicio, 
           vst_validade_fim, 
@@ -106,7 +91,6 @@ module.exports = {
       const { 
         userap_id, 
         vst_nome, 
-        vst_telefone,
         vst_documento, 
         vst_validade_inicio, 
         vst_validade_fim 
@@ -120,24 +104,20 @@ module.exports = {
         });
       }
 
-      // Formata o telefone se fornecido
-      const telefoneFormatado = formatarTelefone(vst_telefone);
-
       // Gera um hash único para o QR Code
-      const vst_qrcode_hash = randomUUID();
+      const vst_qrcode_hash = uuidv4();
 
       const sql = `
-        INSERT INTO Visitantes (userap_id, vst_nome, vst_telefone, vst_documento, vst_validade_inicio, vst_validade_fim, vst_qrcode_hash)
-        VALUES (?, ?, ?, ?, ?, ?, ?);
+        INSERT INTO Visitantes (userap_id, vst_nome, vst_documento, vst_validade_inicio, vst_validade_fim, vst_qrcode_hash)
+        VALUES (?, ?, ?, ?, ?, ?);
       `;
       
-      const values = [userap_id, vst_nome, telefoneFormatado, vst_documento, vst_validade_inicio, vst_validade_fim, vst_qrcode_hash];
+      const values = [userap_id, vst_nome, vst_documento, vst_validade_inicio, vst_validade_fim, vst_qrcode_hash];
       const [result] = await db.query(sql, values);
 
       const dados = {
         vst_id: result.insertId,
         vst_nome,
-        vst_telefone: telefoneFormatado,
         vst_qrcode_hash // Retorna o hash para o app gerar o QR Code
       };
 
@@ -212,31 +192,28 @@ module.exports = {
 
   async autorizarEntradaImediata(request, response) {
     try {
-      const { userap_id, vst_nome, vst_telefone, vst_documento } = request.body;
+      const { userap_id, vst_nome, vst_documento } = request.body;
 
       if (!userap_id || !vst_nome) {
         return response.status(400).json({ sucesso: false, message: "O ID do morador e o nome do visitante são obrigatórios." });
       }
 
-      // Formata o telefone se fornecido
-      const telefoneFormatado = formatarTelefone(vst_telefone);
-
-      const vst_qrcode_hash = randomUUID();
+      const vst_qrcode_hash = uuidv4();
       const agora = new Date();
       const fimDoDia = new Date(agora);
       fimDoDia.setHours(23, 59, 59, 999);
 
       const sql = `
-        INSERT INTO Visitantes (userap_id, vst_nome, vst_telefone, vst_documento, vst_validade_inicio, vst_validade_fim, vst_qrcode_hash, vst_status, vst_data_entrada)
-        VALUES (?, ?, ?, ?, ?, ?, ?, 'Entrou', ?);
+        INSERT INTO Visitantes (userap_id, vst_nome, vst_documento, vst_validade_inicio, vst_validade_fim, vst_qrcode_hash, vst_status, vst_data_entrada)
+        VALUES (?, ?, ?, ?, ?, ?, 'Entrou', ?);
       `;
-      const values = [userap_id, vst_nome, telefoneFormatado, vst_documento, agora, fimDoDia, vst_qrcode_hash, agora];
+      const values = [userap_id, vst_nome, vst_documento, agora, fimDoDia, vst_qrcode_hash, agora];
       const [result] = await db.query(sql, values);
 
       return response.status(201).json({
         sucesso: true,
         message: `Entrada de ${vst_nome} autorizada com sucesso.`,
-        dados: { vst_id: result.insertId, vst_telefone: telefoneFormatado }
+        dados: { vst_id: result.insertId }
       });
     } catch (error) {
       console.error('Erro ao autorizar entrada imediata:', error);

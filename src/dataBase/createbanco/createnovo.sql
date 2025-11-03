@@ -107,7 +107,6 @@ CREATE TABLE Visitantes (
     vst_id INT AUTO_INCREMENT PRIMARY KEY,
     userap_id INT NOT NULL, -- Chave estrangeira para o morador que autorizou
     vst_nome VARCHAR(60) NOT NULL,
-    vst_telefone VARCHAR(20) NULL,
     vst_documento VARCHAR(20) NULL,
     vst_validade_inicio DATETIME NOT NULL,
     vst_validade_fim DATETIME NOT NULL,

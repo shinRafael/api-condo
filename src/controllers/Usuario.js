@@ -51,23 +51,10 @@ module.exports = {
       const sql = `
         SELECT 
           u.user_id, u.user_nome, u.user_email, u.user_telefone, u.user_tipo,
-          ua.userap_id,
-          ua.ap_id AS ap_id,
-          a.ap_numero AS ap_numero,
-          a.ap_andar AS ap_andar,
-          b.bloc_id AS bloc_id,
-          b.bloc_id AS bl_id,
-          b.bloc_nome AS bloc_nome,
-          b.bloc_nome AS bl_nome,
-          c.cond_id AS cond_id,
-          c.cond_nome AS cond_nome
+          ua.userap_id, ua.ap_id
         FROM Usuarios u
         LEFT JOIN Usuario_Apartamentos ua ON u.user_id = ua.user_id
-        LEFT JOIN Apartamentos a ON ua.ap_id = a.ap_id
-        LEFT JOIN Bloco b ON a.bloco_id = b.bloc_id
-        LEFT JOIN Condominio c ON b.cond_id = c.cond_id
-        WHERE u.user_id = ?
-        LIMIT 1;
+        WHERE u.user_id = ?;
       `;
       const [rows] = await bd.query(sql, [id]);
 
@@ -226,22 +213,11 @@ module.exports = {
 
       const sqlFindUser = `
         SELECT 
-          u.user_id, u.user_nome, u.user_email, u.user_telefone, u.user_tipo,
-          u.user_senha,
-          ua.userap_id,
-          ua.ap_id AS ap_id,
-          a.ap_numero AS ap_numero,
-          b.bloc_id AS bl_id,
-          b.bloc_nome AS bloc_nome,
-          b.bloc_nome AS bl_nome,
-          c.cond_nome AS cond_nome
+          u.user_id, u.user_nome, u.user_email, u.user_telefone, u.user_tipo, 
+          u.user_senha, ua.userap_id 
         FROM Usuarios u
         LEFT JOIN Usuario_Apartamentos ua ON u.user_id = ua.user_id
-        LEFT JOIN Apartamentos a ON ua.ap_id = a.ap_id
-        LEFT JOIN Bloco b ON a.bloco_id = b.bloc_id
-        LEFT JOIN Condominio c ON b.cond_id = c.cond_id
         WHERE u.user_email = ?
-        LIMIT 1;
       `;
       const [rows] = await bd.query(sqlFindUser, [user_email]);
 

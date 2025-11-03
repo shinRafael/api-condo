@@ -41,7 +41,7 @@ module.exports = {
                 JOIN usuario_apartamentos ua ON m.userap_id = ua.userap_id
                 JOIN usuarios u ON ua.user_id = u.user_id
                 JOIN apartamentos a ON ua.ap_id = a.ap_id
-                JOIN bloco b ON a.bloco_id = b.bloc_id
+                JOIN bloco b ON a.bloc_id = b.bloc_id
                 ORDER BY m.msg_data_envio ASC;
             `;
             const [rows] = await db.query(sql);

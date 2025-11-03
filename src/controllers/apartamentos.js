@@ -5,7 +5,7 @@ module.exports = {
     try {
       const sql = `
           SELECT 
-            ap_id, bloco_id, ap_numero, ap_andar
+            ap_id, bloc_id, ap_numero, ap_andar
             FROM Apartamentos 
         `;
 
@@ -32,7 +32,7 @@ module.exports = {
       const ap_ativo = 1;
       
       const sql = `
-        INSERT INTO Apartamentos (bloco_id, ap_numero, ap_andar)
+        INSERT INTO Apartamentos (bloc_id, ap_numero, ap_andar)
         VALUES (?, ?, ?);
 
       `;
@@ -68,7 +68,7 @@ module.exports = {
 
         const sql = `
         UPDATE Apartamentos
-        SET bloco_id = ?, ap_numero = ?, ap_andar = ?
+        SET bloc_id = ?, ap_numero = ?, ap_andar = ?
         WHERE ap_id = ?;
         `;
         const values = [bloc, numero, andar, id];

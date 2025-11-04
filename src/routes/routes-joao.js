@@ -13,7 +13,7 @@ const { verificarToken, isSindico, isSindicoOrFuncionario, isMorador } = require
 // 🏢 APARTAMENTOS — (Somente Síndico)
 // ============================================================
 router.get('/apartamentos', verificarToken, isSindico, apartamentoController.listarapartamentos);
-router.post('/apartamentos', verificarToken, isSindico, apartamentoController.cadastrapartamentos);
+router.post('/apartamentos', verificarToken, isSindico, apartamentoController.cadastrarapartamentos);
 router.patch('/apartamentos/:id', verificarToken, isSindico, apartamentoController.editarapartamentos);
 router.delete('/apartamentos/:id', verificarToken, isSindico, apartamentoController.apagarapartamentos);
 

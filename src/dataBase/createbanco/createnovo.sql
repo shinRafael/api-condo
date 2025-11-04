@@ -35,7 +35,7 @@ Aqui está seu dicionário de dados completo, reorganizado na ordem correta de e
 SQL
 
 -- 1 - CONDOMINIO
-CREATE TABLE Condominio (
+CREATE TABLE condominio (
     cond_id INT AUTO_INCREMENT PRIMARY KEY,
     cond_nome VARCHAR(60) NOT NULL,
     cond_endereco VARCHAR(130),
@@ -44,7 +44,7 @@ CREATE TABLE Condominio (
 ) ENGINE=InnoDB;
 
 -- 2 - USUARIOS
-CREATE TABLE Usuarios (
+CREATE TABLE usuarios (
     user_id INT AUTO_INCREMENT PRIMARY KEY,
     user_nome VARCHAR(60) NOT NULL,
     user_email VARCHAR(60) UNIQUE NOT NULL,
@@ -57,68 +57,69 @@ CREATE TABLE Usuarios (
 
 
 -- 3 - GERENCIAMENTO
-CREATE TABLE Gerenciamento (
+CREATE TABLE gerenciamento (
     ger_id INT AUTO_INCREMENT PRIMARY KEY,
     cond_id INT NOT NULL,
     ger_data DATE,
     ger_descricao VARCHAR(60),
     ger_valor DECIMAL(10,2),
-    FOREIGN KEY (cond_id) REFERENCES Condominio(cond_id)
+    FOREIGN KEY (cond_id) REFERENCES condominio(cond_id)
 ) ENGINE=InnoDB;
 
 -- 4 - BLOCO
-CREATE TABLE Bloco (
+CREATE TABLE bloco (
     bloc_id INT AUTO_INCREMENT PRIMARY KEY,
     cond_id INT NOT NULL,
     bloc_nome VARCHAR(60),
-    FOREIGN KEY (cond_id) REFERENCES Condominio(cond_id)
+    FOREIGN KEY (cond_id) REFERENCES condominio(cond_id)
 ) ENGINE=InnoDB;
 
 -- 5 - AMBIENTES
-CREATE TABLE Ambientes (
+CREATE TABLE ambientes (
     amd_id INT AUTO_INCREMENT PRIMARY KEY,
     cond_id INT NOT NULL,
     amd_descricao VARCHAR(100),
     amd_nome VARCHAR(40),
     amd_capacidade INT,
-    FOREIGN KEY (cond_id) REFERENCES Condominio(cond_id)
+    FOREIGN KEY (cond_id) REFERENCES condominio(cond_id)
 ) ENGINE=InnoDB;
 
 -- 6 - APARTAMENTOS
-CREATE TABLE Apartamentos (
+CREATE TABLE apartamentos (
     ap_id INT AUTO_INCREMENT PRIMARY KEY,
-    bloco_id INT NOT NULL,
+    bloc_id INT NOT NULL, -- ✅ CORRIGIDO: era bloco_id
     ap_numero VARCHAR(15) NOT NULL,
     ap_andar INT,
-    FOREIGN KEY (bloco_id) REFERENCES Bloco(bloc_id)
+    FOREIGN KEY (bloc_id) REFERENCES bloco(bloc_id)
 ) ENGINE=InnoDB;
 
 -- 7 - USUARIO_APARTAMENTOS (Tabela de Ligação)
-CREATE TABLE Usuario_Apartamentos (
+CREATE TABLE usuario_apartamentos (
     userap_id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     ap_id INT NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES Usuarios(user_id),
-    FOREIGN KEY (ap_id) REFERENCES Apartamentos(ap_id)
+    FOREIGN KEY (user_id) REFERENCES usuarios(user_id),
+    FOREIGN KEY (ap_id) REFERENCES apartamentos(ap_id)
 ) ENGINE=InnoDB;
 
 -- 8 - VISITANTES (Corrigido para depender de Usuario_Apartamentos)
-CREATE TABLE Visitantes (
+CREATE TABLE visitantes (
     vst_id INT AUTO_INCREMENT PRIMARY KEY,
     userap_id INT NOT NULL, -- Chave estrangeira para o morador que autorizou
     vst_nome VARCHAR(60) NOT NULL,
     vst_documento VARCHAR(20) NULL,
+    vst_celular VARCHAR(20) NULL, -- ✅ ADICIONADO
     vst_validade_inicio DATETIME NOT NULL,
     vst_validade_fim DATETIME NOT NULL,
     vst_qrcode_hash VARCHAR(255) NOT NULL UNIQUE,
     vst_status VARCHAR(30) NOT NULL DEFAULT 'Aguardando',
     vst_data_entrada DATETIME NULL,
     vst_data_saida DATETIME NULL,
-    FOREIGN KEY (userap_id) REFERENCES Usuario_Apartamentos(userap_id) 
+    FOREIGN KEY (userap_id) REFERENCES usuario_apartamentos(userap_id)
 ) ENGINE=InnoDB;
 
 -- 9 - ENCOMENDAS
-CREATE TABLE Encomendas (
+CREATE TABLE encomendas (
     enc_id INT AUTO_INCREMENT PRIMARY KEY,
     userap_id INT NOT NULL,
     enc_nome_loja VARCHAR(225),
@@ -126,23 +127,25 @@ CREATE TABLE Encomendas (
     enc_status ENUM('Aguardando', 'Entregue') DEFAULT 'Aguardando',
     enc_data_chegada DATETIME,
     enc_data_retirada DATETIME,
-    FOREIGN KEY (userap_id) REFERENCES Usuario_Apartamentos(userap_id)
+    FOREIGN KEY (userap_id) REFERENCES usuario_apartamentos(userap_id)
 ) ENGINE=InnoDB;
 
 -- 10 - MENSAGENS
-CREATE TABLE Mensagens (
+CREATE TABLE mensagens (
     msg_id INT AUTO_INCREMENT PRIMARY KEY,
     cond_id INT NOT NULL,
     userap_id INT NOT NULL,
     msg_mensagem VARCHAR(130) NOT NULL,
     msg_data_envio DATETIME,
     msg_status ENUM('Enviada', 'Lida', 'Pendente') DEFAULT 'Enviada',
-    FOREIGN KEY (cond_id) REFERENCES Condominio(cond_id),
-    FOREIGN KEY (userap_id) REFERENCES Usuario_Apartamentos(userap_id)
+    oco_id INT NULL, -- ✅ ADICIONADO: mensagens podem estar vinculadas a ocorrências
+    FOREIGN KEY (cond_id) REFERENCES condominio(cond_id),
+    FOREIGN KEY (userap_id) REFERENCES usuario_apartamentos(userap_id),
+    FOREIGN KEY (oco_id) REFERENCES ocorrencias(oco_id) -- ✅ ADICIONADO
 ) ENGINE=InnoDB;
 
 -- 11 - NOTIFICACOES
-CREATE TABLE Notificacoes (
+CREATE TABLE notificacoes (
     not_id INT AUTO_INCREMENT PRIMARY KEY,
     userap_id INT NOT NULL,
     not_titulo VARCHAR(100) NOT NULL,
@@ -151,24 +154,24 @@ CREATE TABLE Notificacoes (
     not_lida TINYINT(1) DEFAULT 0,
     not_prioridade ENUM('Baixa', 'Media', 'Alta') DEFAULT 'Media' NOT NULL,
     not_tipo ENUM('Entrega', 'Aviso', 'Mensagem') NOT NULL,
-    FOREIGN KEY (userap_id) REFERENCES Usuario_Apartamentos(userap_id)
+    FOREIGN KEY (userap_id) REFERENCES usuario_apartamentos(userap_id)
 ) ENGINE=InnoDB;
 
 -- 12 - RESERVAS_AMBIENTES
-CREATE TABLE Reservas_Ambientes (
+CREATE TABLE reservas_ambientes (
     res_id INT AUTO_INCREMENT PRIMARY KEY,
     userap_id INT NOT NULL,
     amd_id INT NOT NULL,
     res_horario_inicio TIME NOT NULL,
     res_horario_fim TIME NOT NULL,
     res_data_reserva DATE NOT NULL,
-    res_status ENUM('Reservado', 'Cancelado') DEFAULT 'Reservado',
-    FOREIGN KEY (userap_id) REFERENCES Usuario_Apartamentos(userap_id), -- Corrigido para plural
-    FOREIGN KEY (amd_id) REFERENCES Ambientes(amd_id)
+    res_status ENUM('Pendente', 'Reservado', 'Cancelado') DEFAULT 'Reservado', -- ✅ CORRIGIDO: adicionado 'Pendente'
+    FOREIGN KEY (userap_id) REFERENCES usuario_apartamentos(userap_id),
+    FOREIGN KEY (amd_id) REFERENCES ambientes(amd_id)
 ) ENGINE=InnoDB;
 
 -- 13 - OCORRENCIAS
-CREATE TABLE Ocorrencias (
+CREATE TABLE ocorrencias (
     oco_id INT AUTO_INCREMENT PRIMARY KEY,
     userap_id INT NOT NULL,
     oco_protocolo VARCHAR(50) UNIQUE NOT NULL,
@@ -179,12 +182,12 @@ CREATE TABLE Ocorrencias (
     oco_status ENUM('Aberta', 'Em Andamento', 'Resolvida', 'Cancelada') DEFAULT 'Aberta',
     oco_prioridade ENUM('Baixa', 'Média', 'Alta', 'Urgente') DEFAULT 'Média',
     oco_imagem VARCHAR(255),
-    FOREIGN KEY (userap_id) REFERENCES Usuario_Apartamentos(userap_id)
+    FOREIGN KEY (userap_id) REFERENCES usuario_apartamentos(userap_id)
 ) ENGINE=InnoDB;
 
 
 -- 14 - DOCUMENTOS
-CREATE TABLE Documentos (
+CREATE TABLE documentos (
     doc_id INT AUTO_INCREMENT PRIMARY KEY,
     cond_id INT NOT NULL,
     doc_nome VARCHAR(100) NOT NULL,
@@ -192,19 +195,19 @@ CREATE TABLE Documentos (
     doc_data DATE NOT NULL,
     doc_tamanho VARCHAR(20),
     doc_url VARCHAR(255) NOT NULL,
-    FOREIGN KEY (cond_id) REFERENCES Condominio(cond_id)
+    FOREIGN KEY (cond_id) REFERENCES condominio(cond_id)
 ) ENGINE=InnoDB;
 
 -- 15 - OCORRENCIA_MENSAGENS (Nova Tabela para Mensagens das Ocorrências)
-CREATE TABLE Ocorrencia_Mensagens (
+CREATE TABLE ocorrencia_mensagens (
     ocomsg_id INT AUTO_INCREMENT PRIMARY KEY,
     oco_id INT NOT NULL,
     user_id INT NOT NULL, 
     ocomsg_mensagem TEXT NOT NULL,
     ocomsg_data_envio DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     ocomsg_lida TINYINT(1) DEFAULT 0, 
-    FOREIGN KEY (oco_id) REFERENCES Ocorrencias(oco_id) ON DELETE CASCADE, 
-    FOREIGN KEY (user_id) REFERENCES Usuarios(user_id)
+    FOREIGN KEY (oco_id) REFERENCES ocorrencias(oco_id) ON DELETE CASCADE, 
+    FOREIGN KEY (user_id) REFERENCES usuarios(user_id)
 ) ENGINE=InnoDB;
 
-CREATE INDEX idx_oco_id ON Ocorrencia_Mensagens (oco_id);
+CREATE INDEX idx_oco_id ON ocorrencia_mensagens (oco_id);

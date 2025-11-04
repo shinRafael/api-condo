@@ -1,44 +1,43 @@
+// ======================================================
+// 📦 Arquivo: dataBase/connection.js
+// 🔧 Configuração da conexão MySQL (compatível com AWS RDS)
+// ======================================================
+
 require('dotenv').config();
 const mysql = require('mysql2/promise');
 
-// Obtém as configurações do banco de dados a partir do arquivo .env
-const config = {
-    host: process.env.BD_SERVIDOR, // endereço do servidor
-    port: process.env.BD_PORTA || 3306, // Porta padrão 3306 se não definida
-    user: process.env.BD_USUARIO, // usuário acesso banco de dados
-    password: process.env.BD_SENHA, // senha acesso banco de dados
-    database: process.env.BD_BANCO, // nome do banco de dados
-    waitForConnections: true,
-    connectionLimit: 10, // Pode ajustar conforme a necessidade
-    queueLimit: 0,
-};
+// ======================================================
+// ⚙️ CRIA O POOL DE CONEXÕES
+// ======================================================
+const pool = mysql.createPool({
+  host: process.env.BD_SERVIDOR,
+  port: process.env.BD_PORTA || 3306,
+  user: process.env.BD_USUARIO,
+  password: process.env.BD_SENHA?.replace(/"/g, ""), // remove aspas acidentais do .env
+  database: process.env.BD_BANCO,
+  waitForConnections: true,
+  connectionLimit: 10,   // número máximo de conexões simultâneas
+  queueLimit: 0,
+  connectTimeout: 10000, // evita travamento se o banco não responder
+});
 
-/* 
-    -queueLimit-
-    O número máximo de solicitações de conexão que o pool enfileirará 
-    antes de retornar um erro do getConnection. Se definido como 0, não 
-    há limite para o número de solicitações de conexão enfileiradas. (Padrão: 0)
-*/
+// ======================================================
+// 🧪 TESTE DE CONEXÃO (executado apenas uma vez)
+// ======================================================
+(async () => {
+  try {
+    const conn = await pool.getConnection();
+    console.log('✅ Conexão MySQL (AWS RDS) estabelecida com sucesso!');
+    conn.release();
+  } catch (error) {
+    console.error('\n❌ Falha ao conectar ao MySQL (AWS RDS):', error.message);
+    console.error('🔹 Verifique se a porta 3306 está liberada na AWS.');
+    console.error('🔹 Confirme usuário e senha no arquivo .env.');
+    console.error('🔹 Confira se o banco "condowaydb" está acessível.');
+  }
+})();
 
-let pool;
-
-const initializeDatabase = async () => {
-    try {
-        // Cria a pool de conexões
-        pool = mysql.createPool(config);
-
-        // Testa a conectividade com uma conexão simples
-        const connection = await pool.getConnection();
-        console.log('Conexão MySQL estabelecida com sucesso!');
-        connection.release(); // Libera a conexão de volta para a pool
-    } catch (error) {
-        console.error('Erro ao conectar ao banco de dados: ', error.message);
-        process.exit(1); // Encerra o processo se a conexão falhar
-    }
-};
-
-// Inicializa o banco de dados ao carregar o módulo
-initializeDatabase();
-
+// ======================================================
+// 📤 EXPORTAÇÃO
+// ======================================================
 module.exports = pool;
-

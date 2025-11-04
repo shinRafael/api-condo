@@ -1,20 +1,28 @@
+// ============================================================
+// 📂 routes-lucas.js — versão final CondoWay 2025
+// ============================================================
+
 const express = require('express');
 const router = express.Router();
 
-const usuarioApartamentosController = require('../controllers/usuarioApartamentos');
+const usuarioapartamentosController = require('../controllers/usuarioapartamentos');
 const ambientesController = require('../controllers/ambientes');
 const { verificarToken, isSindico, isSindicoOrFuncionario } = require('../middleware/auth');
 
-// USUÁRIOS x APARTAMENTOS (Apenas Síndico)
-router.get('/usuarioApartamentos', verificarToken, isSindico, usuarioApartamentosController.listarUsuariosApartamentos);
-router.post('/usuarioApartamentos', verificarToken, isSindico, usuarioApartamentosController.cadastrarUsuariosApartamentos);
-router.patch('/usuarioApartamentos/:id', verificarToken, isSindico, usuarioApartamentosController.editarUsuariosApartamentos);
-router.delete('/usuarioApartamentos/:id', verificarToken, isSindico, usuarioApartamentosController.apagarUsuariosApartamentos);
+// ============================================================
+// 👥 USUÁRIOS x APARTAMENTOS (Apenas Síndico)
+// ============================================================
+router.get('/usuarioapartamentos', verificarToken, isSindico, usuarioapartamentosController.listarusuariosapartamentos);
+router.post('/usuarioapartamentos', verificarToken, isSindico, usuarioapartamentosController.cadastrarusuariosapartamentos);
+router.patch('/usuarioapartamentos/:id', verificarToken, isSindico, usuarioapartamentosController.editarusuariosapartamentos);
+router.delete('/usuarioapartamentos/:id', verificarToken, isSindico, usuarioapartamentosController.apagarusuariosapartamentos);
 
-// AMBIENTES (Síndico controla)
-router.get('/ambientes', verificarToken, isSindicoOrFuncionario, ambientesController.listarAmbientes);
-router.post('/ambientes', verificarToken, isSindico, ambientesController.cadastrarAmbientes);
-router.patch('/ambientes/:id', verificarToken, isSindico, ambientesController.editarAmbientes);
-router.delete('/ambientes/:id', verificarToken, isSindico, ambientesController.apagarAmbientes);
+// ============================================================
+// 🏢 AMBIENTES (Síndico controla, Funcionário pode listar)
+// ============================================================
+router.get('/ambientes', verificarToken, isSindicoOrFuncionario, ambientesController.listarambientes);
+router.post('/ambientes', verificarToken, isSindico, ambientesController.cadastrarambientes);
+router.patch('/ambientes/:id', verificarToken, isSindico, ambientesController.editarambientes);
+router.delete('/ambientes/:id', verificarToken, isSindico, ambientesController.apagarambientes);
 
 module.exports = router;

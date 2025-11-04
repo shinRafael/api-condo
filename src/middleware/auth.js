@@ -1,34 +1,64 @@
+// auth.js
 const jwt = require('jsonwebtoken');
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_trocar_em_prod';
 
+// Helper: detectar modo dev com tolerância a strings
+const isDevMode = () => {
+  const env = (process.env.NODE_ENV || '').toString().trim().toLowerCase();
+  const devFlag = (process.env.DEV_MODE || '').toString().trim().toLowerCase();
+  return env === 'development' || devFlag === 'true';
+};
+
+// Helper: tentar parse seguro de JSON
+const safeJsonParse = (str) => {
+  try {
+    return JSON.parse(str);
+  } catch {
+    return null;
+  }
+};
+
 // ============================================================
-// FUNÇÃO PRINCIPAL: verificarToken
+// MIDDLEWARE PRINCIPAL: verificarToken
+// - Em DEV: ignora JWT e injeta request.user (acesse tudo).
+// - Em PROD: valida Bearer JWT e coloca payload em request.user.
 // ============================================================
 function verificarToken(request, response, next) {
-  // ========================================================
-  // 🧩 MODO DEV - ignora autenticação e simula um usuário
-  // ========================================================
-  if (process.env.NODE_ENV === 'development' || process.env.DEV_MODE === 'true') {
-  const headerDevUser = request.headers['x-dev-user'];
-  if (headerDevUser) {
-    try {
-      const userSimulado = JSON.parse(headerDevUser);
-      request.user = userSimulado;
-      console.log(`🧩 [AUTH DEV] Usuário simulado recebido do front: ${userSimulado.userType}`);
-    } catch (err) {
-      console.warn('⚠️ Cabeçalho X-Dev-User inválido.');
+  // =========================
+  //  MODO DEV: bypass completo
+  // =========================
+  if (isDevMode()) {
+    // 1) Se frontend enviar header X-Dev-User com JSON, usa isso
+    const headerDevUser = request.headers['x-dev-user'];
+    if (headerDevUser) {
+      const parsed = safeJsonParse(headerDevUser);
+      if (parsed && parsed.userType) {
+        request.user = { ...parsed, _dev: true };
+        console.log('\x1b[33m%s\x1b[0m', `🧩 [AUTH DEV] Usuário simulado via header: ${request.user.userType} (ID: ${request.user.userId || 'N/A'})`);
+        return next();
+      } else {
+        console.warn('\x1b[33m%s\x1b[0m', '⚠️ [AUTH DEV] Cabeçalho X-Dev-User inválido — deve ser JSON com pelo menos userType. Ex: {"userId":1,"userType":"Morador"}');
+      }
     }
-  } else {
-    request.user = { userId: 1, userType: 'Sindico' };
-    console.log('🧩 [AUTH DEV] Usuário padrão: Síndico');
-  }
-  return next();
-}
-  // ========================================================
-  // 🔒 MODO PRODUÇÃO - exige token válido
-  // ========================================================
-  const authHeader = request.headers.authorization;
 
+    // 2) Se query ?role=Funcionario estiver presente, usa isso (útil pra testar direto via URL)
+    const roleQuery = (request.query && request.query.role) || null;
+    if (roleQuery) {
+      request.user = { userId: 1, userType: roleQuery, _dev: true };
+      console.log('\x1b[33m%s\x1b[0m', `🧩 [AUTH DEV] Usuário simulado via query: ${request.user.userType}`);
+      return next();
+    }
+
+    // 3) Fallback: usuário padrão em DEV — SÍNDICO (acesso total)
+    request.user = { userId: 1, userType: 'Sindico', _dev: true };
+    console.log('\x1b[33m%s\x1b[0m', '🧩 [AUTH DEV] Modo DEV ativo — usuário padrão: Sindico (acesso total)');
+    return next();
+  }
+
+  // =========================
+  //  MODO PRODUÇÃO: validar JWT
+  // =========================
+  const authHeader = request.headers.authorization || request.headers.Authorization;
   if (!authHeader) {
     return response.status(401).json({
       sucesso: false,
@@ -45,15 +75,13 @@ function verificarToken(request, response, next) {
   }
 
   const token = parts[1];
-
   try {
     const payload = jwt.verify(token, JWT_SECRET);
     request.user = payload;
-
-    console.log('\x1b[32m%s\x1b[0m', `🔐 Usuário autenticado: ID=${payload.userId}, Tipo=${payload.userType}`);
-    next();
+    console.log('\x1b[32m%s\x1b[0m', `🔐 [AUTH] Usuário autenticado: ID=${payload.userId || 'N/A'}, Tipo=${payload.userType || 'N/A'}`);
+    return next();
   } catch (error) {
-    console.error('\x1b[31m%s\x1b[0m', '❌ Erro de autenticação:', error.message);
+    console.error('\x1b[31m%s\x1b[0m', '❌ [AUTH] Erro de autenticação:', error.message);
     return response.status(401).json({
       sucesso: false,
       mensagem: 'Token inválido ou expirado.',
@@ -62,14 +90,17 @@ function verificarToken(request, response, next) {
 }
 
 // ============================================================
-// MIDDLEWARES DE AUTORIZAÇÃO (Controle de Acesso por Papel)
+// MIDDLEWARES DE AUTORIZAÇÃO (controle por papel)
+// Observação: em DEV request.user._dev === true é setado e => passa nas checagens
 // ============================================================
 
 // Apenas Síndico
 const isSindico = (request, response, next) => {
-  console.log('🔐 [AUTH] Verificando acesso de Síndico...', { userType: request.user?.userType });
-  
-  if (request.user && request.user.userType === 'Sindico') {
+  const user = request.user || {};
+  console.log('🔐 [AUTH] isSindico check —', { userType: user.userType, dev: user._dev || false });
+
+  // Em DEV, se _dev = true e userType undefined, damos acesso (já setado como Sindico no verificarToken)
+  if (user._dev || user.userType === 'Sindico') {
     return next();
   }
 
@@ -81,12 +112,10 @@ const isSindico = (request, response, next) => {
 
 // Síndico OU Funcionário (porteiro)
 const isSindicoOrFuncionario = (request, response, next) => {
-  console.log('🔐 [AUTH] Verificando acesso de Síndico/Funcionário...', { userType: request.user?.userType });
-  
-  if (
-    request.user &&
-    (request.user.userType === 'Sindico' || request.user.userType === 'Funcionario')
-  ) {
+  const user = request.user || {};
+  console.log('🔐 [AUTH] isSindicoOrFuncionario check —', { userType: user.userType, dev: user._dev || false });
+
+  if (user._dev || user.userType === 'Sindico' || user.userType === 'Funcionario') {
     return next();
   }
 
@@ -98,9 +127,11 @@ const isSindicoOrFuncionario = (request, response, next) => {
 
 // Apenas Morador
 const isMorador = (request, response, next) => {
-  console.log('🔐 [AUTH] Verificando acesso de Morador...', { userType: request.user?.userType });
-  
-  if (request.user && request.user.userType === 'Morador') {
+  const user = request.user || {};
+  console.log('🔐 [AUTH] isMorador check —', { userType: user.userType, dev: user._dev || false });
+
+  // Em DEV, _dev true permite ver tudo — útil para testes
+  if (user._dev || user.userType === 'Morador') {
     return next();
   }
 
@@ -111,7 +142,7 @@ const isMorador = (request, response, next) => {
 };
 
 // ============================================================
-// EXPORTA TODOS OS MIDDLEWARES
+// Export
 // ============================================================
 module.exports = {
   verificarToken,

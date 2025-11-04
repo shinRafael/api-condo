@@ -1,24 +1,24 @@
 const express = require('express');
 const router = express.Router();
 
-const NotificacaoController = require('../controllers/notificacao');
+const notificacaoController = require('../controllers/notificacao');
 const { verificarToken, isSindico, isSindicoOrFuncionario, isMorador } = require('../middleware/auth');
 
 // ============================================================
 // ROTAS PARA O PAINEL WEB (GESTÃO)
 // ============================================================
-router.get('/notificacoes/envios', verificarToken, isSindicoOrFuncionario, NotificacaoController.listarEnviosAgrupados);
-router.patch('/notificacoes/envio', verificarToken, isSindicoOrFuncionario, NotificacaoController.editarEnvioAgrupado);
-router.delete('/notificacoes/envio', verificarToken, isSindico, NotificacaoController.apagarEnvioAgrupado);
-router.post('/notificacao', verificarToken, isSindicoOrFuncionario, NotificacaoController.cadastrarnotificacao);
-router.patch('/notificacao/:id', verificarToken, isSindicoOrFuncionario, NotificacaoController.editarnotificacao);
-router.delete('/notificacao/:id', verificarToken, isSindico, NotificacaoController.apagarnotificacao);
+router.get('/notificacoes/envios', verificarToken, isSindicoOrFuncionario, notificacaoController.listarEnviosAgrupados);
+router.patch('/notificacoes/envio', verificarToken, isSindicoOrFuncionario, notificacaoController.editarEnvioAgrupado);
+router.delete('/notificacoes/envio', verificarToken, isSindico, notificacaoController.apagarEnvioAgrupado);
+router.post('/notificacao', verificarToken, isSindicoOrFuncionario, notificacaoController.cadastrarnotificacao);
+router.patch('/notificacao/:id', verificarToken, isSindicoOrFuncionario, notificacaoController.editarnotificacao);
+router.delete('/notificacao/:id', verificarToken, isSindico, notificacaoController.apagarnotificacao);
 
 // ============================================================
 // ROTAS PARA O APP (MORADOR)
 // ============================================================
-router.get('/notificacoes/importantes', verificarToken, isMorador, NotificacaoController.listarAvisosImportantes);
-router.get('/notificacao/:userap_id', verificarToken, isMorador, NotificacaoController.listarnotificacao);
+router.get('/notificacoes/importantes', verificarToken, isMorador, notificacaoController.listarAvisosImportantes);
+router.get('/notificacao/:userap_id', verificarToken, isMorador, notificacaoController.listarnotificacao);
 
 // 🔄 AGORA PERMITE SÍNDICO E MORADOR MARCAREM COMO LIDA
 router.patch(
@@ -32,7 +32,7 @@ router.patch(
       mensagem: 'Apenas Moradores ou Síndicos podem marcar notificações como lidas.',
     });
   },
-  NotificacaoController.marcarComoLida
+  notificacaoController.marcarComoLida
 );
 
 module.exports = router;

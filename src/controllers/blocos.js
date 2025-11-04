@@ -1,17 +1,36 @@
+// ===============================================================
+// 📂 controllers/blocos.js — versão revisada CondoWay 2025
+// ===============================================================
+
 const db = require('../dataBase/connection');
 
 module.exports = {
-  async listablocos(req, res) {
+
+  // =============================================================
+  // 📋 LISTAR BLOCOS
+  // =============================================================
+  async listarblocos(request, response) {
     try {
-      const [rows] = await db.query(`SELECT bloc_id, cond_id, bloc_nome FROM Bloco;`);
-      return res.status(200).json({
+      const sql = `
+        SELECT 
+          bloc_id, 
+          cond_id, 
+          bloc_nome 
+        FROM bloco;
+      `;
+
+      const [rows] = await db.query(sql);
+
+      return response.status(200).json({
         sucesso: true,
-        mensagem: 'Lista de blocos.',
+        mensagem: 'Lista de blocos recuperada com sucesso.',
         nItens: rows.length,
         dados: rows
       });
+
     } catch (error) {
-      return res.status(500).json({
+      console.error("Erro ao listar blocos:", error);
+      return response.status(500).json({
         sucesso: false,
         mensagem: 'Erro ao listar blocos.',
         dados: error.message
@@ -19,27 +38,41 @@ module.exports = {
     }
   },
 
-  async cadastrarblocos(req, res) {
+  // =============================================================
+  // 🧾 CADASTRAR BLOCO
+  // =============================================================
+  async cadastrarblocos(request, response) {
     try {
-      const { cond_id, bloc_nome } = req.body;
-      const [result] = await db.query(
-        `INSERT INTO Bloco (cond_id, bloc_nome) VALUES (?, ?);`,
-        [cond_id, bloc_nome]
-      );
+      const { cond_id, bloc_nome } = request.body;
+
+      if (!cond_id || !bloc_nome) {
+        return response.status(400).json({
+          sucesso: false,
+          mensagem: "Campos obrigatórios (cond_id, bloc_nome) não foram informados."
+        });
+      }
+
+      const sql = `
+        INSERT INTO bloco (cond_id, bloc_nome)
+        VALUES (?, ?);
+      `;
+      const [result] = await db.query(sql, [cond_id, bloc_nome]);
 
       const dados = {
-        id: result.insertId, // ✅ corrigido
+        bloc_id: result.insertId,
         cond_id,
         bloc_nome
       };
 
-      return res.status(201).json({
+      return response.status(201).json({
         sucesso: true,
         mensagem: 'Bloco cadastrado com sucesso.',
         dados
       });
+
     } catch (error) {
-      return res.status(500).json({
+      console.error("Erro ao cadastrar bloco:", error);
+      return response.status(500).json({
         sucesso: false,
         mensagem: 'Erro ao cadastrar bloco.',
         dados: error.message
@@ -47,29 +80,46 @@ module.exports = {
     }
   },
 
-  async editarblocos(req, res) {
+  // =============================================================
+  // ✏️ EDITAR BLOCO
+  // =============================================================
+  async editarblocos(request, response) {
     try {
-      const { id } = req.params;
-      const { cond_id, bloc_nome } = req.body;
-      const [result] = await db.query(
-        `UPDATE Bloco SET cond_id = ?, bloc_nome = ? WHERE bloc_id = ?;`,
-        [cond_id, bloc_nome, id]
-      );
+      const { id } = request.params;
+      const { cond_id, bloc_nome } = request.body;
 
-      if (result.affectedRows === 0) {
-        return res.status(404).json({
+      if (!id) {
+        return response.status(400).json({
           sucesso: false,
-          mensagem: `Bloco ${id} não encontrado.`,
+          mensagem: "ID do bloco não informado."
         });
       }
 
-      return res.status(200).json({
+      const sql = `
+        UPDATE bloco
+        SET cond_id = ?, bloc_nome = ?
+        WHERE bloc_id = ?;
+      `;
+      const [result] = await db.query(sql, [cond_id, bloc_nome, id]);
+
+      if (result.affectedRows === 0) {
+        return response.status(404).json({
+          sucesso: false,
+          mensagem: `Bloco ${id} não encontrado.`
+        });
+      }
+
+      const dados = { bloc_id: id, cond_id, bloc_nome };
+
+      return response.status(200).json({
         sucesso: true,
         mensagem: `Bloco ${id} atualizado com sucesso.`,
-        dados: { cond_id, bloc_nome }
+        dados
       });
+
     } catch (error) {
-      return res.status(500).json({
+      console.error("Erro ao editar bloco:", error);
+      return response.status(500).json({
         sucesso: false,
         mensagem: 'Erro ao editar bloco.',
         dados: error.message
@@ -77,24 +127,41 @@ module.exports = {
     }
   },
 
-  async apagarblocos(req, res) {
+  // =============================================================
+  // 🗑️ APAGAR BLOCO
+  // =============================================================
+  async apagarblocos(request, response) {
     try {
-      const { id } = req.params;
-      const [result] = await db.query(`DELETE FROM Bloco WHERE bloc_id = ?;`, [id]);
+      const { id } = request.params;
 
-      if (result.affectedRows === 0) {
-        return res.status(404).json({
+      if (!id) {
+        return response.status(400).json({
           sucesso: false,
-          mensagem: `Bloco ${id} não encontrado.`, // ✅ corrigido
+          mensagem: "ID do bloco não informado."
         });
       }
 
-      return res.status(200).json({
+      const sql = `
+        DELETE FROM bloco
+        WHERE bloc_id = ?;
+      `;
+      const [result] = await db.query(sql, [id]);
+
+      if (result.affectedRows === 0) {
+        return response.status(404).json({
+          sucesso: false,
+          mensagem: `Bloco ${id} não encontrado.`
+        });
+      }
+
+      return response.status(200).json({
         sucesso: true,
-        mensagem: `Bloco ${id} apagado com sucesso.`,
+        mensagem: `Bloco ${id} removido com sucesso.`
       });
+
     } catch (error) {
-      return res.status(500).json({
+      console.error("Erro ao apagar bloco:", error);
+      return response.status(500).json({
         sucesso: false,
         mensagem: 'Erro ao apagar bloco.',
         dados: error.message

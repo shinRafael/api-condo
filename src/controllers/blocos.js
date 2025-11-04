@@ -1,131 +1,104 @@
 const db = require('../dataBase/connection');
 
 module.exports = {
-    async listablocos (request, response) {
-        try {
-            const sql = `SELECT bloc_id, 
-            cond_id, bloc_nome FROM Bloco;
-            `;
-           
-            const [row] = await db.query(sql);
-            const nItens = row.length;
-            
-            return response.status(200).json({
-                sucesso: true,
-                mensagem: 'Lista de blocos.',
-                nItens,
-                dados: row
-            });
-        } catch (error) {
-            return response.status(500).json({
-                sucesso: false,
-                mensagem: 'Erro na Listagem de blocos.',
-                dados: error.message
-            
-            });
-        }   
-    },
-    async cadastrarblocos (request, response) {
-        try {
-            const { cond_id, bloc_nome } = request.body;
-            const bloc_ativa = 1;
+  async listablocos(req, res) {
+    try {
+      const [rows] = await db.query(`SELECT bloc_id, cond_id, bloc_nome FROM Bloco;`);
+      return res.status(200).json({
+        sucesso: true,
+        mensagem: 'Lista de blocos.',
+        nItens: rows.length,
+        dados: rows
+      });
+    } catch (error) {
+      return res.status(500).json({
+        sucesso: false,
+        mensagem: 'Erro ao listar blocos.',
+        dados: error.message
+      });
+    }
+  },
 
-            const sql = `
-            INSERT INTO Bloco
-                (cond_id, bloc_nome)
-            VALUES
-                (?, ?);
-            `;
-            
-            const values = [cond_id, bloc_nome];
-            const [result] = await db.query(sql,values);
-            const dados = {
-                id: result.insertID,
-                cond_id,
-                bloc_nome                    
-                };
+  async cadastrarblocos(req, res) {
+    try {
+      const { cond_id, bloc_nome } = req.body;
+      const [result] = await db.query(
+        `INSERT INTO Bloco (cond_id, bloc_nome) VALUES (?, ?);`,
+        [cond_id, bloc_nome]
+      );
 
-            return response.status(200).json({
-                sucesso: true,
-                mensagem: 'Cadastrar bloco.',
-                dados
-            });
-        } catch (error) {
-            return response.status(500).json({
-                sucesso: false,
-                mensagem: 'Erro na Listagem de blocos.',
-                dados: error.message
-            
-            });
-        }   
-    },
+      const dados = {
+        id: result.insertId, // ✅ corrigido
+        cond_id,
+        bloc_nome
+      };
 
-    async editarblocos (request, response) {
-        try {
-            const { cond_id, bloc_nome } = request.body;
-            const { id } = request.params;
+      return res.status(201).json({
+        sucesso: true,
+        mensagem: 'Bloco cadastrado com sucesso.',
+        dados
+      });
+    } catch (error) {
+      return res.status(500).json({
+        sucesso: false,
+        mensagem: 'Erro ao cadastrar bloco.',
+        dados: error.message
+      });
+    }
+  },
 
-            const sql = `
-            UPDATE Bloco SET
-                cond_id = ?, bloc_nome = ? 
-            WHERE 
-                bloc_id = ?;
-            `;
-            const values = [cond_id, bloc_nome, id];
-            const [result] = await db.query(sql,values);
-            
-            if (result.affectedRows == 0) {
-                return response.status(404).json({
-                    sucesso: false,
-                    mensagem: `Bloco ${id}não encontrado.`,
-                    dados
-                });
-            }
-            const dados = {
-                cond_id,
-                bloc_nome,
-            };
+  async editarblocos(req, res) {
+    try {
+      const { id } = req.params;
+      const { cond_id, bloc_nome } = req.body;
+      const [result] = await db.query(
+        `UPDATE Bloco SET cond_id = ?, bloc_nome = ? WHERE bloc_id = ?;`,
+        [cond_id, bloc_nome, id]
+      );
 
-            return response.status(200).json({
-                sucesso: true,
-                mensagem: `Bloco ${id} editado.`,
-                dados
-            });
-        } catch (error) {
-            return response.status(500).json({
-                sucesso: false,
-                mensagem: 'Erro na Listagem de blocos.',
-                dados: error.message
-            
-            });
-        }   
-    },
-    async apagarblocos (request, response) {
-        try {
-            const { id } = request.params;
-            const sql = `DELETE FROM Bloco WHERE bloc_id = ?;`;
-            const values = [id];
-            const [result] = await db.query(sql,values);
-            if (result.affectedRows === 0) {
-                return response.status(404).json({
-                    sucesso: false,
-                    mensagem: `Bloco ${bloc_id}não encontrado.`,
-                    dados: null
-                });
-            }
+      if (result.affectedRows === 0) {
+        return res.status(404).json({
+          sucesso: false,
+          mensagem: `Bloco ${id} não encontrado.`,
+        });
+      }
 
-            return response.status(200).json({
-                sucesso: true,
-                mensagem: `Bloco ${id} apagado com sucesso.`,
-                dados: null
-            });
-        } catch (error) {
-            return response.status(500).json({
-                sucesso: false,
-                mensagem: 'Erro na Listagem de blocos.',
-                dados: error.message
-            
-            });
-        }   
-    },
-}
+      return res.status(200).json({
+        sucesso: true,
+        mensagem: `Bloco ${id} atualizado com sucesso.`,
+        dados: { cond_id, bloc_nome }
+      });
+    } catch (error) {
+      return res.status(500).json({
+        sucesso: false,
+        mensagem: 'Erro ao editar bloco.',
+        dados: error.message
+      });
+    }
+  },
+
+  async apagarblocos(req, res) {
+    try {
+      const { id } = req.params;
+      const [result] = await db.query(`DELETE FROM Bloco WHERE bloc_id = ?;`, [id]);
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({
+          sucesso: false,
+          mensagem: `Bloco ${id} não encontrado.`, // ✅ corrigido
+        });
+      }
+
+      return res.status(200).json({
+        sucesso: true,
+        mensagem: `Bloco ${id} apagado com sucesso.`,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        sucesso: false,
+        mensagem: 'Erro ao apagar bloco.',
+        dados: error.message
+      });
+    }
+  }
+};

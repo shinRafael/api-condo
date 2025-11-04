@@ -9,17 +9,21 @@ function verificarToken(request, response, next) {
   // 🧩 MODO DEV - ignora autenticação e simula um usuário
   // ========================================================
   if (process.env.NODE_ENV === 'development' || process.env.DEV_MODE === 'true') {
-    // ⚙️ Altere o tipo do usuário para testar diferentes permissões:
-    const usuarioSimulado = {
-      userId: 1,
-      userType: 'Sindico', // opções: 'Sindico' | 'Funcionario' | 'Morador'
-    };
-
-    request.user = usuarioSimulado;
-    console.log('\x1b[33m%s\x1b[0m', `🧩 [AUTH DEV] Modo desenvolvimento ativo: simulando usuário ${usuarioSimulado.userType}`);
-    return next();
+  const headerDevUser = request.headers['x-dev-user'];
+  if (headerDevUser) {
+    try {
+      const userSimulado = JSON.parse(headerDevUser);
+      request.user = userSimulado;
+      console.log(`🧩 [AUTH DEV] Usuário simulado recebido do front: ${userSimulado.userType}`);
+    } catch (err) {
+      console.warn('⚠️ Cabeçalho X-Dev-User inválido.');
+    }
+  } else {
+    request.user = { userId: 1, userType: 'Sindico' };
+    console.log('🧩 [AUTH DEV] Usuário padrão: Síndico');
   }
-
+  return next();
+}
   // ========================================================
   // 🔒 MODO PRODUÇÃO - exige token válido
   // ========================================================

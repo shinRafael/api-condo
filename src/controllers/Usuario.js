@@ -5,7 +5,6 @@ const jwt = require('jsonwebtoken');
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_trocar_em_prod';
 
 module.exports = {
-
   // ============================================================
   // LISTAR TODOS OS USUÁRIOS (Apenas Síndico ou Funcionário)
   // ============================================================
@@ -28,7 +27,8 @@ module.exports = {
       console.error('Erro ao listar usuários:', error);
       return response.status(500).json({
         sucesso: false,
-        mensagem: 'Erro interno ao listar usuários.'
+        mensagem: 'Erro interno ao listar usuários.',
+        dados: error.message
       });
     }
   },
@@ -40,7 +40,6 @@ module.exports = {
     try {
       const { id } = request.params;
 
-      // Apenas o próprio usuário ou um síndico pode ver o perfil
       if (request.user.userType === 'Morador' && Number(request.user.userId) !== Number(id)) {
         return response.status(403).json({
           sucesso: false,
@@ -87,7 +86,8 @@ module.exports = {
       console.error('Erro ao buscar perfil:', error);
       return response.status(500).json({
         sucesso: false,
-        mensagem: 'Erro interno ao buscar perfil.'
+        mensagem: 'Erro interno ao buscar perfil.',
+        dados: error.message
       });
     }
   },
@@ -102,7 +102,7 @@ module.exports = {
       if (!user_nome || !user_email || !user_senha || !user_tipo) {
         return response.status(400).json({
           sucesso: false,
-          mensagem: 'Preencha todos os campos obrigatórios.',
+          mensagem: 'Preencha todos os campos obrigatórios.'
         });
       }
 
@@ -110,30 +110,35 @@ module.exports = {
       if (existente.length > 0) {
         return response.status(400).json({
           sucesso: false,
-          mensagem: 'E-mail já cadastrado.',
+          mensagem: 'E-mail já cadastrado.'
         });
       }
 
       const salt = await bcrypt.genSalt(10);
       const senhaHash = await bcrypt.hash(user_senha, salt);
 
+      // Evita erro com campo vazio ou NOT NULL
+      const telefone = user_telefone && user_telefone.trim() !== "" ? user_telefone : null;
+
+      // ✅ Remove user_push_token (caso não exista no BD)
       const sql = `
-        INSERT INTO Usuarios (user_nome, user_email, user_telefone, user_senha, user_tipo, user_push_token)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO Usuarios (user_nome, user_email, user_telefone, user_senha, user_tipo)
+        VALUES (?, ?, ?, ?, ?)
       `;
-      const values = [user_nome, user_email, user_telefone, senhaHash, user_tipo, null];
+      const values = [user_nome, user_email, telefone, senhaHash, user_tipo];
       const [result] = await bd.query(sql, values);
 
       return response.status(201).json({
         sucesso: true,
         mensagem: 'Usuário cadastrado com sucesso!',
-        dados: { id: result.insertId, user_nome, user_email, user_tipo },
+        dados: { id: result.insertId, user_nome, user_email, user_tipo }
       });
     } catch (error) {
       console.error('Erro ao cadastrar usuário:', error);
       return response.status(500).json({
         sucesso: false,
         mensagem: 'Erro interno ao cadastrar usuário.',
+        dados: error.message
       });
     }
   },
@@ -146,7 +151,20 @@ module.exports = {
       const { id } = request.params;
       const { user_nome, user_email, user_telefone, user_senha, user_tipo } = request.body;
 
+      // Verifica duplicidade de e-mail
+      const [duplicado] = await bd.query(
+        'SELECT user_id FROM Usuarios WHERE user_email = ? AND user_id != ?',
+        [user_email, id]
+      );
+      if (duplicado.length > 0) {
+        return response.status(400).json({
+          sucesso: false,
+          mensagem: 'Já existe um usuário com este e-mail.'
+        });
+      }
+
       let sql, values;
+      const telefone = user_telefone && user_telefone.trim() !== "" ? user_telefone : null;
 
       if (user_senha) {
         const salt = await bcrypt.genSalt(10);
@@ -156,26 +174,34 @@ module.exports = {
           SET user_nome = ?, user_email = ?, user_telefone = ?, user_senha = ?, user_tipo = ?
           WHERE user_id = ?
         `;
-        values = [user_nome, user_email, user_telefone, senhaHash, user_tipo, id];
+        values = [user_nome, user_email, telefone, senhaHash, user_tipo, id];
       } else {
         sql = `
           UPDATE Usuarios 
           SET user_nome = ?, user_email = ?, user_telefone = ?, user_tipo = ?
           WHERE user_id = ?
         `;
-        values = [user_nome, user_email, user_telefone, user_tipo, id];
+        values = [user_nome, user_email, telefone, user_tipo, id];
       }
 
-      await bd.query(sql, values);
+      const [result] = await bd.query(sql, values);
+      if (result.affectedRows === 0) {
+        return response.status(404).json({
+          sucesso: false,
+          mensagem: 'Usuário não encontrado.'
+        });
+      }
+
       return response.status(200).json({
         sucesso: true,
-        mensagem: 'Usuário atualizado com sucesso.',
+        mensagem: 'Usuário atualizado com sucesso.'
       });
     } catch (error) {
       console.error('Erro ao editar usuário:', error);
       return response.status(500).json({
         sucesso: false,
         mensagem: 'Erro interno ao editar usuário.',
+        dados: error.message
       });
     }
   },
@@ -191,21 +217,24 @@ module.exports = {
       if (user.length === 0) {
         return response.status(404).json({
           sucesso: false,
-          mensagem: 'Usuário não encontrado.',
+          mensagem: 'Usuário não encontrado.'
         });
       }
 
+      // Caso exista relação com Usuario_Apartamentos, apaga também
+      await bd.query('DELETE FROM Usuario_Apartamentos WHERE user_id = ?', [id]);
       await bd.query('DELETE FROM Usuarios WHERE user_id = ?', [id]);
 
       return response.status(200).json({
         sucesso: true,
-        mensagem: 'Usuário removido com sucesso.',
+        mensagem: 'Usuário removido com sucesso.'
       });
     } catch (error) {
       console.error('Erro ao apagar usuário:', error);
       return response.status(500).json({
         sucesso: false,
         mensagem: 'Erro interno ao apagar usuário.',
+        dados: error.message
       });
     }
   },
@@ -220,7 +249,7 @@ module.exports = {
       if (!user_email || !user_senha) {
         return response.status(400).json({
           sucesso: false,
-          mensagem: 'E-mail e senha são obrigatórios.',
+          mensagem: 'E-mail e senha são obrigatórios.'
         });
       }
 
@@ -241,14 +270,18 @@ module.exports = {
         LEFT JOIN Bloco b ON a.bloc_id = b.bloc_id
         LEFT JOIN Condominio c ON b.cond_id = c.cond_id
         WHERE u.user_email = ?
+<<<<<<< Updated upstream
         LIMIT 1;
+=======
+        LIMIT 1
+>>>>>>> Stashed changes
       `;
       const [rows] = await bd.query(sqlFindUser, [user_email]);
 
       if (rows.length === 0) {
         return response.status(401).json({
           sucesso: false,
-          mensagem: 'E-mail ou senha inválidos.',
+          mensagem: 'E-mail ou senha inválidos.'
         });
       }
 
@@ -258,14 +291,14 @@ module.exports = {
       if (!senhaCorreta) {
         return response.status(401).json({
           sucesso: false,
-          mensagem: 'E-mail ou senha inválidos.',
+          mensagem: 'E-mail ou senha inválidos.'
         });
       }
 
       const payload = {
         userId: usuario.user_id,
         userType: usuario.user_tipo,
-        userApId: usuario.userap_id || null,
+        userApId: usuario.userap_id || null
       };
 
       const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '8h' });
@@ -276,15 +309,16 @@ module.exports = {
         mensagem: 'Login bem-sucedido.',
         dados: {
           usuario,
-          token,
-        },
+          token
+        }
       });
     } catch (error) {
       console.error('Erro ao fazer login:', error);
       return response.status(500).json({
         sucesso: false,
         mensagem: 'Erro interno ao fazer login.',
+        dados: error.message
       });
     }
-  },
+  }
 };

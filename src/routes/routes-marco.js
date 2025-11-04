@@ -20,7 +20,7 @@ router.delete('/blocos/:id', verificarToken, isSindico, blocosController.apagarb
 // ============================================================
 // 💬 MENSAGENS (Chat interno Síndico ↔ Moradores)
 // ============================================================
-router.get('/mensagens', verificarToken, isSindicoOrFuncionario, mensagensController.listarmensagens);
+router.get('/mensagens', verificarToken, isSindicoOrFuncionario, mensagensController.listamensagens);
 router.post('/mensagens', verificarToken, mensagensController.cadastrarmensagens);
 router.patch('/mensagens/:id', verificarToken, mensagensController.editarmensagens);
 router.delete('/mensagens/:id', verificarToken, isSindico, mensagensController.apagarmensagens);

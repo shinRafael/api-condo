@@ -18,6 +18,13 @@ router.patch('/apartamentos/:id', verificarToken, isSindico, apartamentoControll
 router.delete('/apartamentos/:id', verificarToken, isSindico, apartamentoController.apagarapartamentos);
 
 // ============================================================
+// � VISITANTES — (Portaria / Gestão)
+// ============================================================
+
+// Lista visitantes relevantes (Aguardando / Entrou) - DEVE VIR ANTES das rotas genéricas
+router.get('/visitantes/dashboard', verificarToken, isSindicoOrFuncionario, visitantesController.listarvisitantesdashboard);
+
+// ============================================================
 // 👥 VISITANTES — (Acesso do Morador)
 // ============================================================
 
@@ -25,17 +32,17 @@ router.delete('/apartamentos/:id', verificarToken, isSindico, apartamentoControl
 router.get('/visitantes', verificarToken, isMorador, visitantesController.listarvisitantes);
 
 // Morador cadastra autorização de visitante
-router.post('/visitantes', verificarToken, isMorador, visitantesController.cadastrarautorizacao);
+router.post('/visitantes', verificarToken, isMorador, visitantesController.cadastravisitante);
 
 // Morador cancela uma autorização antes da entrada
 router.patch('/visitantes/:id/cancelar', verificarToken, isMorador, visitantesController.cancelarautorizacao);
 
 // ============================================================
-// 🚪 VISITANTES — (Portaria / Gestão)
+// 🚪 VISITANTES — (Portaria / Gestão - continuação)
 // ============================================================
 
-// Lista visitantes relevantes (Aguardando / Entrou)
-router.get('/visitantes/dashboard', verificarToken, isSindicoOrFuncionario, visitantesController.listarvisitantesparadashboard);
+// Portaria autoriza entrada imediata de visitante sem agendamento
+router.post('/visitantes/entrada-imediata', verificarToken, isSindicoOrFuncionario, visitantesController.autorizarentrada);
 
 // Portaria registra ENTRADA de visitante autorizado
 router.put('/visitantes/:id/entrada', verificarToken, isSindicoOrFuncionario, visitantesController.registrarentrada);
@@ -43,15 +50,12 @@ router.put('/visitantes/:id/entrada', verificarToken, isSindicoOrFuncionario, vi
 // Portaria registra SAÍDA de visitante
 router.put('/visitantes/:id/saida', verificarToken, isSindicoOrFuncionario, visitantesController.registrarsaida);
 
-// Portaria autoriza entrada imediata de visitante sem agendamento
-router.post('/visitantes/entrada-imediata', verificarToken, isSindicoOrFuncionario, visitantesController.autorizarentradaimediata);
-
 // Portaria notifica morador sobre visitante inesperado
 router.post(
   '/moradores/:userap_id/notificar-visitante',
   verificarToken,
   isSindicoOrFuncionario,
-  visitantesController.notificarvisitanteinesperado
+  visitantesController.notificarvisitante
 );
 
 // Portaria nega visitante

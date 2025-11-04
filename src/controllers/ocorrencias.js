@@ -104,7 +104,7 @@ module.exports = {
                  LEFT JOIN usuario_apartamentos ua ON o.userap_id = ua.userap_id
                  LEFT JOIN usuarios u ON ua.user_id = u.user_id
                  LEFT JOIN apartamentos a ON ua.ap_id = a.ap_id
-                 LEFT JOIN bloco b ON a.bloco_id = b.bloc_id
+                 LEFT JOIN bloco b ON a.bloc_id = b.bloc_id
                  WHERE o.oco_id = ?`,
                 [result.insertId]
             );

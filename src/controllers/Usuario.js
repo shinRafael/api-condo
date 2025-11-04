@@ -64,7 +64,7 @@ module.exports = {
         FROM Usuarios u
         LEFT JOIN Usuario_Apartamentos ua ON u.user_id = ua.user_id
         LEFT JOIN Apartamentos a ON ua.ap_id = a.ap_id
-        LEFT JOIN Bloco b ON a.bloco_id = b.bloc_id
+        LEFT JOIN Bloco b ON a.bloc_id = b.bloc_id
         LEFT JOIN Condominio c ON b.cond_id = c.cond_id
         WHERE u.user_id = ?
         LIMIT 1;
@@ -238,7 +238,7 @@ module.exports = {
         FROM Usuarios u
         LEFT JOIN Usuario_Apartamentos ua ON u.user_id = ua.user_id
         LEFT JOIN Apartamentos a ON ua.ap_id = a.ap_id
-        LEFT JOIN Bloco b ON a.bloco_id = b.bloc_id
+        LEFT JOIN Bloco b ON a.bloc_id = b.bloc_id
         LEFT JOIN Condominio c ON b.cond_id = c.cond_id
         WHERE u.user_email = ?
         LIMIT 1;

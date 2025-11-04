@@ -251,7 +251,7 @@ async editarEnvioAgrupado(request, response) {
                 const [rows] = await db.query(`
                     SELECT ua.userap_id FROM usuario_Apartamentos ua
                     JOIN Apartamentos a ON ua.ap_id = a.ap_id
-                    WHERE a.bloco_id = ?;
+                    WHERE a.bloc_id = ?;
                 `, [blocId]);
                 listaDeUserApIds = rows.map(r => r.userap_id);
             } else if (alvo.startsWith('ap-')) {

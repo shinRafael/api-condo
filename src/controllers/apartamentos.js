@@ -45,7 +45,7 @@ module.exports = {
   // =============================================================
   // 🧾 CADASTRAR APARTAMENTO
   // =============================================================
-  async cadastrapartamentos(request, response) {
+  async cadastrarapartamentos(request, response) {
     try {
       const { bloc_id, ap_numero, ap_andar } = request.body;
 

@@ -15,7 +15,7 @@ router.get(
   '/dashboard/updates/:userap_id',
   verificarToken,
   isMorador,
-  dashboardController.getlatestupdates
+  dashboardController.getLatestUpdates
 );
 
 module.exports = router;

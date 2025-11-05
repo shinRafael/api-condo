@@ -5,12 +5,12 @@ INSERT INTO condominio (cond_nome, cond_endereco, cond_cidade, cond_estado) VALU
 ('Village das Palmeiras', 'Rua Central, 789', 'Belo Horizonte', 'MG'),
 ('Residencial Porto Seguro', 'Av. Atlântica, 1000', 'Salvador', 'BA');
 
--- 2 - USUARIOS (Com senhas em hash bcrypt - senha123, 123456, abc123, pass123)
-INSERT INTO usuarios (user_nome, user_email, user_senha, user_telefone, user_tipo, user_push_token, user_data_cadastro) VALUES
-('Ana Souza', 'ana@email.com', '$2b$10$rWXeRRzalMkCLoltjYv/q.YhE055agY.jShKk4hXeAJ6HgwCbMpn2', '11998765432', 'Morador', NULL, '2023-01-15 10:30:00'),
-('Carlos Pereira', 'carlos@email.com', '$2b$10$MlvR9yagNA48l08wWyS.h.YfW/Ovo57SOz4o6dr9uqo0NtzvlJXB6', '21988776655', 'Sindico', 'ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]', '2023-02-20 14:15:00'),
-('Fernanda Lima', 'fernanda@email.com', '$2b$10$aF70EgAHIt9F31/AOzN8oOsTxUQqcM8etywyVI1zExUefhqqhbwzu', '31977665544', 'ADM', 'ExponentPushToken[yyyyyyyyyyyyyyyyyyyyyy]', '2023-03-05 09:00:00'),
-('João Oliveira', 'joao@email.com', '$2b$10$43vsX/eaHAZRBjcQb6lNI.z3pcQ4qcZPTV3iGt7dto9ujPVxGCCq6', '71966554433', 'Funcionario', NULL, '2023-04-10 11:45:00');
+-- 2 - USUARIOS (Com senhas em hash bcrypt e nova coluna user_foto)
+INSERT INTO usuarios (user_nome, user_email, user_senha, user_telefone, user_tipo, user_foto, user_push_token, user_data_cadastro) VALUES
+('Ana Souza', 'ana@email.com', '$2b$10$rWXeRRzalMkCLoltjYv/q.YhE055agY.jShKk4hXeAJ6HgwCbMpn2', '11998765432', 'Morador', NULL, NULL, '2023-01-15 10:30:00'),
+('Carlos Pereira', 'carlos@email.com', '$2b$10$MlvR9yagNA48l08wWyS.h.YfW/Ovo57SOz4o6dr9uqo0NtzvlJXB6', '21988776655', 'Sindico', NULL, 'ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]', '2023-02-20 14:15:00'),
+('Fernanda Lima', 'fernanda@email.com', '$2b$10$aF70EgAHIt9F31/AOzN8oOsTxUQqcM8etywyVI1zExUefhqqhbwzu', '31977665544', 'ADM', NULL, 'ExponentPushToken[yyyyyyyyyyyyyyyyyyyyyy]', '2023-03-05 09:00:00'),
+('João Oliveira', 'joao@email.com', '$2b$10$43vsX/eaHAZRBjcQb6lNI.z3pcQ4qcZPTV3iGt7dto9ujPVxGCCq6', '71966554433', 'Funcionario', NULL, NULL, '2023-04-10 11:45:00');
 
 -- 3 - GERENCIAMENTO
 INSERT INTO gerenciamento (cond_id, ger_data, ger_descricao, ger_valor) VALUES
@@ -62,12 +62,12 @@ INSERT INTO encomendas (userap_id, enc_nome_loja, enc_codigo_rastreio, enc_statu
 (3, 'Magazine Luiza', 'BR555666777', 'Aguardando', '2025-03-03 15:00:00', NULL),
 (4, 'Americanas', 'BR888999000', 'Entregue', '2025-03-04 09:00:00', '2025-03-04 12:00:00');
 
--- 10 - MENSAGENS
-INSERT INTO mensagens (cond_id, userap_id, msg_mensagem, msg_data_envio, msg_status) VALUES
-(1, 1, 'Reunião marcada para sexta-feira', '2025-03-01 08:00:00', 'Enviada'),
-(2, 2, 'Lembrete da assembleia', '2025-03-02 09:00:00', 'Lida'),
-(3, 3, 'Aviso de manutenção na academia', '2025-03-03 10:00:00', 'Pendente'),
-(4, 4, 'Pagamento da taxa condominial', '2025-03-04 11:00:00', 'Enviada');
+-- 10 - MENSAGENS (oco_id é NULL para estas mensagens)
+INSERT INTO mensagens (cond_id, userap_id, msg_mensagem, msg_data_envio, msg_status, oco_id) VALUES
+(1, 1, 'Reunião marcada para sexta-feira', '2025-03-01 08:00:00', 'Enviada', NULL),
+(2, 2, 'Lembrete da assembleia', '2025-03-02 09:00:00', 'Lida', NULL),
+(3, 3, 'Aviso de manutenção na academia', '2025-03-03 10:00:00', 'Pendente', NULL),
+(4, 4, 'Pagamento da taxa condominial', '2025-03-04 11:00:00', 'Enviada', NULL);
 
 -- 11 - NOTIFICACOES
 INSERT INTO notificacoes (userap_id, not_titulo, not_mensagem, not_data_envio, not_lida, not_prioridade, not_tipo) VALUES
@@ -96,3 +96,10 @@ INSERT INTO documentos (cond_id, doc_nome, doc_categoria, doc_data, doc_tamanho,
 (2, 'Regulamento Piscina', 'Regulamento', '2025-01-15', '500KB', 'https://docs.condominio.com/piscina.pdf'),
 (3, 'Balanço Financeiro 2024', 'Balanço', '2025-02-10', '2.5MB', 'https://docs.condominio.com/balanco2024.pdf'),
 (4, 'Circular Avisos Gerais', 'Circular', '2025-02-20', '800KB', 'https://docs.condominio.com/circular.pdf');
+
+-- 15 - OCORRENCIA_MENSAGENS (✅ ADICIONADO)
+INSERT INTO ocorrencia_mensagens (oco_id, user_id, ocomsg_mensagem, ocomsg_data_envio, ocomsg_lida) VALUES
+(1, 1, 'Por favor, verifiquem o barulho. Está impossível dormir.', '2025-03-01 23:32:00', 1),
+(1, 2, 'Prezada Ana, já notificamos a unidade responsável. Agradecemos o contato.', '2025-03-01 23:45:00', 1),
+(2, 2, 'A lâmpada do corredor do 1º andar do Bloco B está queimada.', '2025-03-02 20:01:00', 1),
+(2, 3, 'Recebido, Carlos. A equipe de manutenção já foi acionada e fará a troca amanhã pela manhã.', '2025-03-02 20:15:00', 1);

@@ -1,3 +1,10 @@
+-- ===================================================================
+-- SCRIPT DE CONSULTAS SIMPLES (SELECT *)
+-- ===================================================================
+-- Para verificar o conteúdo de cada tabela individualmente,
+-- com base na sua última estrutura de banco de dados.
+-- ===================================================================
+
 -- 1 - CONDOMINIO
 SELECT * FROM condominio;
 
@@ -13,20 +20,20 @@ SELECT * FROM bloco;
 -- 5 - AMBIENTES
 SELECT * FROM ambientes;
 
--- 6 - APARTAMENTOS
+-- 6 - DOCUMENTOS
+SELECT * FROM documentos;
+
+-- 7 - APARTAMENTOS
 SELECT * FROM apartamentos;
 
--- 7 - USUARIO_APARTAMENTOS
+-- 8 - USUARIO_APARTAMENTOS
 SELECT * FROM usuario_apartamentos;
 
--- 8 - VISITANTES
+-- 9 - VISITANTES
 SELECT * FROM visitantes;
 
--- 9 - ENCOMENDAS
+-- 10 - ENCOMENDAS
 SELECT * FROM encomendas;
-
--- 10 - MENSAGENS
-SELECT * FROM mensagens;
 
 -- 11 - NOTIFICACOES
 SELECT * FROM notificacoes;
@@ -37,5 +44,8 @@ SELECT * FROM reservas_ambientes;
 -- 13 - OCORRENCIAS
 SELECT * FROM ocorrencias;
 
--- 14 - DOCUMENTOS
-SELECT * FROM documentos;
+-- 14 - MENSAGENS
+SELECT * FROM mensagens;
+
+-- 15 - OCORRENCIA_MENSAGENS
+SELECT * FROM ocorrencia_mensagens;

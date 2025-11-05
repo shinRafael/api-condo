@@ -1,6 +1,10 @@
 const express = require('express');
 const router = express.Router();
 
+// Importações de controllers e middlewares
+const { upload, uploadAnexo } = require('../controllers/upload');
+const { verificarToken } = require('../middleware/auth');
+
 // Importações de sub-rotas
 const RotasRafael = require('./routes-rafael');
 const RotasJoao = require('./routes-joao');
@@ -22,5 +26,8 @@ router.use('/', RotasMatheus);
 router.use('/', RotasOtavio);
 router.use('/', RotasEnc);
 router.use('/', RotasDashboard);
+
+// Rota de upload de arquivos (protegida por token)
+router.post('/upload', verificarToken, upload.single('file'), uploadAnexo);
 
 module.exports = router;

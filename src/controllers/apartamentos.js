@@ -47,12 +47,17 @@ module.exports = {
   // =============================================================
   async cadastrarapartamentos(request, response) {
     try {
-      const { bloc_id, ap_numero, ap_andar } = request.body;
+      // Aceita tanto o formato antigo (bloc_id) quanto o novo (bloc)
+      const { bloc_id, bloc, ap_numero, numero, ap_andar, andar } = request.body;
+      
+      const blocoId = bloc_id || bloc;
+      const numeroAp = ap_numero || numero;
+      const andarAp = ap_andar || andar;
 
-      if (!bloc_id || !ap_numero) {
+      if (!blocoId || !numeroAp) {
         return response.status(400).json({
           sucesso: false,
-          mensagem: "Campos obrigatórios (bloc_id, ap_numero) não foram informados.",
+          mensagem: "Campos obrigatórios (bloc/bloc_id, numero/ap_numero) não foram informados.",
         });
       }
 
@@ -60,15 +65,15 @@ module.exports = {
         INSERT INTO apartamentos (bloc_id, ap_numero, ap_andar)
         VALUES (?, ?, ?);
       `;
-      const values = [bloc_id, ap_numero, ap_andar];
+      const values = [blocoId, numeroAp, andarAp];
 
       const [result] = await db.query(sql, values);
 
       const dados = {
         ap_id: result.insertId,
-        bloc_id,
-        ap_numero,
-        ap_andar,
+        bloc_id: blocoId,
+        ap_numero: numeroAp,
+        ap_andar: andarAp,
       };
 
       return response.status(201).json({

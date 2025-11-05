@@ -43,12 +43,15 @@ module.exports = {
   // =============================================================
   async cadastrarblocos(request, response) {
     try {
-      const { cond_id, bloc_nome } = request.body;
+      // Aceita tanto o formato antigo (bloc_nome) quanto o novo (nome)
+      const { cond_id, bloc_nome, nome } = request.body;
+      
+      const nomeBloco = bloc_nome || nome;
 
-      if (!cond_id || !bloc_nome) {
+      if (!cond_id || !nomeBloco) {
         return response.status(400).json({
           sucesso: false,
-          mensagem: "Campos obrigatórios (cond_id, bloc_nome) não foram informados."
+          mensagem: "Campos obrigatórios (cond_id, nome/bloc_nome) não foram informados."
         });
       }
 
@@ -56,12 +59,12 @@ module.exports = {
         INSERT INTO bloco (cond_id, bloc_nome)
         VALUES (?, ?);
       `;
-      const [result] = await db.query(sql, [cond_id, bloc_nome]);
+      const [result] = await db.query(sql, [cond_id, nomeBloco]);
 
       const dados = {
         bloc_id: result.insertId,
         cond_id,
-        bloc_nome
+        bloc_nome: nomeBloco
       };
 
       return response.status(201).json({

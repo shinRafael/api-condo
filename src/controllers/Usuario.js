@@ -5,6 +5,9 @@
 const db = require('../dataBase/connection');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const path = require('path');
+const fs = require('fs');
+const { uploadPerfil } = require('./upload');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_trocar_em_prod';
 
@@ -56,7 +59,7 @@ module.exports = {
 
       const sql = `
         SELECT 
-          u.user_id, u.user_nome, u.user_email, u.user_telefone, u.user_tipo,
+          u.user_id, u.user_nome, u.user_email, u.user_telefone, u.user_tipo, u.user_foto,
           ua.userap_id,
           ua.ap_id,
           a.ap_numero,
@@ -157,8 +160,19 @@ module.exports = {
   async editarusuario(request, response) {
     try {
       const { id } = request.params;
-      const { user_nome, user_email, user_telefone, user_senha, user_tipo } =
+      const { user_nome, user_email, user_telefone, user_senha, user_tipo, user_foto } =
         request.body;
+
+      // Validação: morador só pode editar próprio perfil
+      if (
+        request.user.userType === 'Morador' &&
+        Number(request.user.userId) !== Number(id)
+      ) {
+        return response.status(403).json({
+          sucesso: false,
+          mensagem: 'Acesso negado. Você só pode editar seu próprio perfil.',
+        });
+      }
 
       const [duplicado] = await db.query(
         'SELECT user_id FROM usuarios WHERE user_email = ? AND user_id != ?',
@@ -180,17 +194,17 @@ module.exports = {
         const senhaHash = await bcrypt.hash(user_senha, salt);
         sql = `
           UPDATE usuarios 
-          SET user_nome = ?, user_email = ?, user_telefone = ?, user_senha = ?, user_tipo = ?
+          SET user_nome = ?, user_email = ?, user_telefone = ?, user_senha = ?, user_tipo = ?, user_foto = ?
           WHERE user_id = ?
         `;
-        values = [user_nome, user_email, telefone, senhaHash, user_tipo, id];
+        values = [user_nome, user_email, telefone, senhaHash, user_tipo, user_foto || null, id];
       } else {
         sql = `
           UPDATE usuarios 
-          SET user_nome = ?, user_email = ?, user_telefone = ?, user_tipo = ?
+          SET user_nome = ?, user_email = ?, user_telefone = ?, user_tipo = ?, user_foto = ?
           WHERE user_id = ?
         `;
-        values = [user_nome, user_email, telefone, user_tipo, id];
+        values = [user_nome, user_email, telefone, user_tipo, user_foto || null, id];
       }
 
       const [result] = await db.query(sql, values);
@@ -265,12 +279,13 @@ module.exports = {
 
       const sql = `
         SELECT 
-          u.user_id, u.user_nome, u.user_email, u.user_telefone, u.user_tipo, u.user_senha,
+          u.user_id, u.user_nome, u.user_email, u.user_telefone, u.user_tipo, u.user_senha, u.user_foto,
           ua.userap_id,
           ua.ap_id,
           a.ap_numero,
           b.bloc_id,
           b.bloc_nome,
+          c.cond_id,
           c.cond_nome
         FROM usuarios u
         LEFT JOIN usuario_apartamentos ua ON u.user_id = ua.user_id
@@ -318,6 +333,81 @@ module.exports = {
       return response.status(500).json({
         sucesso: false,
         mensagem: 'Erro interno ao fazer login.',
+        dados: error.message,
+      });
+    }
+  },
+
+  // =============================================================
+  // 📸 UPLOAD FOTO DE PERFIL
+  // =============================================================
+  async uploadfotoperfil(request, response) {
+    try {
+      const { id } = request.params;
+
+      // Validação: usuário só pode alterar própria foto (a menos que seja admin/síndico)
+      if (
+        request.user.userType === 'Morador' &&
+        Number(request.user.userId) !== Number(id)
+      ) {
+        return response.status(403).json({
+          sucesso: false,
+          mensagem: 'Acesso negado. Você só pode alterar sua própria foto.',
+        });
+      }
+
+      if (!request.file) {
+        return response.status(400).json({
+          sucesso: false,
+          mensagem: 'Nenhuma imagem foi enviada.',
+        });
+      }
+
+      const fotoPath = `/uploads/perfil/${request.file.filename}`;
+
+      // Buscar foto antiga para deletar (opcional)
+      const [usuario] = await db.query(
+        'SELECT user_foto FROM usuarios WHERE user_id = ?',
+        [id]
+      );
+
+      if (usuario.length === 0) {
+        // Se usuário não existe, deletar a imagem recém-carregada
+        fs.unlinkSync(request.file.path);
+        return response.status(404).json({
+          sucesso: false,
+          mensagem: 'Usuário não encontrado.',
+        });
+      }
+
+      // Deletar foto antiga se existir
+      if (usuario[0].user_foto) {
+        const oldPhotoPath = path.join(__dirname, '../../', usuario[0].user_foto);
+        if (fs.existsSync(oldPhotoPath)) {
+          fs.unlinkSync(oldPhotoPath);
+        }
+      }
+
+      // Atualizar banco de dados
+      const sql = 'UPDATE usuarios SET user_foto = ? WHERE user_id = ?';
+      await db.query(sql, [fotoPath, id]);
+
+      return response.status(200).json({
+        sucesso: true,
+        mensagem: 'Foto de perfil atualizada com sucesso.',
+        url: fotoPath, // Para compatibilidade com frontend
+        dados: {
+          filename: request.file.filename,
+          path: fotoPath,
+          user_foto: fotoPath,
+          size: request.file.size,
+        },
+      });
+    } catch (error) {
+      console.error('❌ Erro ao fazer upload da foto de perfil:', error);
+      return response.status(500).json({
+        sucesso: false,
+        mensagem: 'Erro interno ao fazer upload da foto.',
         dados: error.message,
       });
     }

@@ -6,6 +6,7 @@ const express = require('express');
 const router = express.Router();
 
 const usuarioController = require('../controllers/usuario');
+const { uploadPerfil } = require('../controllers/upload');
 const { verificarToken, isSindico, isSindicoOrFuncionario } = require('../middleware/auth');
 
 // ============================================================
@@ -37,5 +38,28 @@ router.patch('/usuario/:id', verificarToken, isSindico, usuarioController.editar
 // ❌ APAGAR USUÁRIO (apenas Síndico)
 // ============================================================
 router.delete('/usuario/:id', verificarToken, isSindico, usuarioController.apagarusuario);
+
+// ============================================================
+// 📸 UPLOAD FOTO DE PERFIL (usuário pode alterar sua própria foto)
+// ============================================================
+router.post(
+  '/usuario/perfil/:id/foto', 
+  verificarToken, 
+  uploadPerfil.single('foto'), 
+  usuarioController.uploadfotoperfil
+);
+
+// Rota alternativa para compatibilidade com frontend (campo 'file')
+router.post(
+  '/usuario/foto/:id', 
+  verificarToken, 
+  uploadPerfil.single('file'), 
+  usuarioController.uploadfotoperfil
+);
+
+// ============================================================
+// ✏️ EDITAR PERFIL DO USUÁRIO (usuário pode editar próprio perfil)
+// ============================================================
+router.put('/usuario/perfil/:id', verificarToken, usuarioController.editarusuario);
 
 module.exports = router;

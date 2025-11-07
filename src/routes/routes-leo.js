@@ -30,7 +30,7 @@ router.get('/usuario', verificarToken, isSindicoOrFuncionario, usuarioController
 router.post('/usuario', verificarToken, isSindico, usuarioController.cadastrarusuario);
 
 // ============================================================
-// ✏️ EDITAR USUÁRIO (apenas Síndico)
+// ✏️ EDITAR USUÁRIO (apenas Síndico - pode alterar tudo)
 // ============================================================
 router.patch('/usuario/:id', verificarToken, isSindico, usuarioController.editarusuario);
 
@@ -58,8 +58,13 @@ router.post(
 );
 
 // ============================================================
-// ✏️ EDITAR PERFIL DO USUÁRIO (usuário pode editar próprio perfil)
+// ✏️ EDITAR PERFIL DO USUÁRIO (usuário pode editar email e telefone)
 // ============================================================
 router.put('/usuario/perfil/:id', verificarToken, usuarioController.editarusuario);
+
+// ============================================================
+// 🔒 ALTERAR SENHA DO USUÁRIO (usuário pode alterar própria senha)
+// ============================================================
+router.put('/usuario/senha/:id', verificarToken, usuarioController.alterarsenha);
 
 module.exports = router;

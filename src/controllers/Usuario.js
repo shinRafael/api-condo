@@ -67,7 +67,10 @@ module.exports = {
           b.bloc_id,
           b.bloc_nome,
           c.cond_id,
-          c.cond_nome
+          c.cond_nome,
+          c.cond_endereco,
+          c.cond_cidade,
+          c.cond_estado
         FROM usuarios u
         LEFT JOIN usuario_apartamentos ua ON u.user_id = ua.user_id
         LEFT JOIN apartamentos a ON ua.ap_id = a.ap_id
@@ -163,6 +166,9 @@ module.exports = {
       const { user_nome, user_email, user_telefone, user_senha, user_tipo, user_foto } =
         request.body;
 
+      console.log('📝 [editarusuario] Editando usuário:', id);
+      console.log('📝 [editarusuario] Campos recebidos:', { user_nome, user_email, user_telefone, user_tipo, user_foto: user_foto ? 'presente' : 'ausente' });
+
       // Validação: morador só pode editar próprio perfil
       if (
         request.user.userType === 'Morador' &&
@@ -174,6 +180,35 @@ module.exports = {
         });
       }
 
+      // Validação: email obrigatório
+      if (!user_email || user_email.trim() === '') {
+        return response.status(400).json({
+          sucesso: false,
+          mensagem: 'Email é obrigatório.',
+        });
+      }
+
+      // Validação: formato de email
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(user_email)) {
+        return response.status(400).json({
+          sucesso: false,
+          mensagem: 'Formato de email inválido.',
+        });
+      }
+
+      // Validação: telefone com 10 ou 11 dígitos (se fornecido)
+      if (user_telefone && user_telefone.trim() !== '') {
+        const telefoneNumeros = user_telefone.replace(/\D/g, '');
+        if (telefoneNumeros.length !== 10 && telefoneNumeros.length !== 11) {
+          return response.status(400).json({
+            sucesso: false,
+            mensagem: 'Telefone deve ter 10 ou 11 dígitos.',
+          });
+        }
+      }
+
+      // Validação: email único
       const [duplicado] = await db.query(
         'SELECT user_id FROM usuarios WHERE user_email = ? AND user_id != ?',
         [user_email, id]
@@ -185,8 +220,26 @@ module.exports = {
         });
       }
 
+      // Verificar se usuário existe
+      const [usuarioExiste] = await db.query(
+        'SELECT user_nome, user_tipo FROM usuarios WHERE user_id = ?',
+        [id]
+      );
+
+      if (usuarioExiste.length === 0) {
+        return response.status(404).json({
+          sucesso: false,
+          mensagem: 'Usuário não encontrado.',
+        });
+      }
+
+      // Tratar telefone (null se vazio)
       const telefone =
         user_telefone && user_telefone.trim() !== '' ? user_telefone : null;
+
+      // Para edição de perfil (morador), manter nome e tipo originais
+      const nomeAtualizar = user_nome || usuarioExiste[0].user_nome;
+      const tipoAtualizar = user_tipo || usuarioExiste[0].user_tipo;
 
       let sql, values;
       if (user_senha) {
@@ -197,27 +250,47 @@ module.exports = {
           SET user_nome = ?, user_email = ?, user_telefone = ?, user_senha = ?, user_tipo = ?, user_foto = ?
           WHERE user_id = ?
         `;
-        values = [user_nome, user_email, telefone, senhaHash, user_tipo, user_foto || null, id];
+        values = [nomeAtualizar, user_email, telefone, senhaHash, tipoAtualizar, user_foto || null, id];
       } else {
         sql = `
           UPDATE usuarios 
           SET user_nome = ?, user_email = ?, user_telefone = ?, user_tipo = ?, user_foto = ?
           WHERE user_id = ?
         `;
-        values = [user_nome, user_email, telefone, user_tipo, user_foto || null, id];
+        values = [nomeAtualizar, user_email, telefone, tipoAtualizar, user_foto || null, id];
       }
 
-      const [result] = await db.query(sql, values);
-      if (result.affectedRows === 0) {
-        return response.status(404).json({
-          sucesso: false,
-          mensagem: 'Usuário não encontrado.',
-        });
-      }
+      await db.query(sql, values);
+
+      // Buscar dados atualizados do usuário
+      const sqlSelect = `
+        SELECT 
+          u.user_id, u.user_nome, u.user_email, u.user_telefone, u.user_tipo, u.user_foto,
+          ua.userap_id,
+          ua.ap_id,
+          a.ap_numero,
+          a.ap_andar,
+          b.bloc_id,
+          b.bloc_nome,
+          c.cond_id,
+          c.cond_nome,
+          c.cond_endereco,
+          c.cond_cidade,
+          c.cond_estado
+        FROM usuarios u
+        LEFT JOIN usuario_apartamentos ua ON u.user_id = ua.user_id
+        LEFT JOIN apartamentos a ON ua.ap_id = a.ap_id
+        LEFT JOIN bloco b ON a.bloc_id = b.bloc_id
+        LEFT JOIN condominio c ON b.cond_id = c.cond_id
+        WHERE u.user_id = ?
+        LIMIT 1;
+      `;
+      const [usuario] = await db.query(sqlSelect, [id]);
 
       return response.status(200).json({
         sucesso: true,
         mensagem: 'Usuário atualizado com sucesso.',
+        dados: usuario[0],
       });
     } catch (error) {
       console.error('❌ Erro ao editar usuário:', error);
@@ -230,7 +303,7 @@ module.exports = {
   },
 
   // =============================================================
-  // 🗑️ APAGAR USUÁRIO (apenas síndico)
+  // ️ APAGAR USUÁRIO (apenas síndico)
   // =============================================================
   async apagarusuario(request, response) {
     try {
@@ -264,7 +337,85 @@ module.exports = {
   },
 
   // =============================================================
-  // 🔐 LOGIN USUÁRIO
+  // � ALTERAR SENHA DO USUÁRIO
+  // =============================================================
+  async alterarsenha(request, response) {
+    try {
+      const { id } = request.params;
+      const { senhaAtual, novaSenha } = request.body;
+
+      // Validação: usuário só pode alterar própria senha
+      if (
+        request.user.userType === 'Morador' &&
+        Number(request.user.userId) !== Number(id)
+      ) {
+        return response.status(403).json({
+          sucesso: false,
+          mensagem: 'Acesso negado. Você só pode alterar sua própria senha.',
+        });
+      }
+
+      if (!senhaAtual || !novaSenha) {
+        return response.status(400).json({
+          sucesso: false,
+          mensagem: 'Senha atual e nova senha são obrigatórias.',
+        });
+      }
+
+      if (novaSenha.length < 6) {
+        return response.status(400).json({
+          sucesso: false,
+          mensagem: 'A nova senha deve ter no mínimo 6 caracteres.',
+        });
+      }
+
+      // Buscar usuário e verificar senha atual
+      const [usuario] = await db.query(
+        'SELECT user_senha FROM usuarios WHERE user_id = ?',
+        [id]
+      );
+
+      if (usuario.length === 0) {
+        return response.status(404).json({
+          sucesso: false,
+          mensagem: 'Usuário não encontrado.',
+        });
+      }
+
+      // Verificar se senha atual está correta
+      const senhaCorreta = await bcrypt.compare(senhaAtual, usuario[0].user_senha);
+      
+      if (!senhaCorreta) {
+        return response.status(401).json({
+          sucesso: false,
+          mensagem: 'Senha atual incorreta.',
+        });
+      }
+
+      // Criptografar nova senha
+      const salt = await bcrypt.genSalt(10);
+      const novaSenhaHash = await bcrypt.hash(novaSenha, salt);
+
+      // Atualizar senha no banco
+      const sql = 'UPDATE usuarios SET user_senha = ? WHERE user_id = ?';
+      await db.query(sql, [novaSenhaHash, id]);
+
+      return response.status(200).json({
+        sucesso: true,
+        mensagem: 'Senha alterada com sucesso.',
+      });
+    } catch (error) {
+      console.error('❌ Erro ao alterar senha:', error);
+      return response.status(500).json({
+        sucesso: false,
+        mensagem: 'Erro interno ao alterar senha.',
+        dados: error.message,
+      });
+    }
+  },
+
+  // =============================================================
+  // �🔐 LOGIN USUÁRIO
   // =============================================================
   async loginusuario(request, response) {
     try {
@@ -286,7 +437,10 @@ module.exports = {
           b.bloc_id,
           b.bloc_nome,
           c.cond_id,
-          c.cond_nome
+          c.cond_nome,
+          c.cond_endereco,
+          c.cond_cidade,
+          c.cond_estado
         FROM usuarios u
         LEFT JOIN usuario_apartamentos ua ON u.user_id = ua.user_id
         LEFT JOIN apartamentos a ON ua.ap_id = a.ap_id
@@ -320,7 +474,7 @@ module.exports = {
         userApId: usuario.userap_id || null,
       };
 
-      const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '8h' });
+      const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' }); // 7 dias de validade
       delete usuario.user_senha;
 
       return response.status(200).json({

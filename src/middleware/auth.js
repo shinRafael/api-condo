@@ -82,9 +82,21 @@ function verificarToken(request, response, next) {
     return next();
   } catch (error) {
     console.error('\x1b[31m%s\x1b[0m', '❌ [AUTH] Erro de autenticação:', error.message);
+    
+    // Diferenciar entre token expirado e token inválido
+    if (error.name === 'TokenExpiredError') {
+      return response.status(401).json({
+        sucesso: false,
+        mensagem: 'Token expirado. Faça login novamente.',
+        codigo: 'TOKEN_EXPIRADO',
+        expiradoEm: error.expiredAt,
+      });
+    }
+    
     return response.status(401).json({
       sucesso: false,
-      mensagem: 'Token inválido ou expirado.',
+      mensagem: 'Token inválido.',
+      codigo: 'TOKEN_INVALIDO',
     });
   }
 }

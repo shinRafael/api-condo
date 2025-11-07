@@ -18,9 +18,9 @@ router.patch('/usuarioapartamentos/:id', verificarToken, isSindico, usuarioapart
 router.delete('/usuarioapartamentos/:id', verificarToken, isSindico, usuarioapartamentosController.apagarusuariosapartamentos);
 
 // ============================================================
-// 🏢 AMBIENTES (Síndico controla, Funcionário pode listar)
+// 🏢 AMBIENTES (Moradores podem listar, apenas Síndico gerencia)
 // ============================================================
-router.get('/ambientes', verificarToken, isSindicoOrFuncionario, ambientesController.listarambientes);
+router.get('/ambientes', verificarToken, ambientesController.listarambientes); // Qualquer usuário logado pode listar
 router.post('/ambientes', verificarToken, isSindico, ambientesController.cadastrarambientes);
 router.patch('/ambientes/:id', verificarToken, isSindico, ambientesController.editarambientes);
 router.delete('/ambientes/:id', verificarToken, isSindico, ambientesController.apagarambientes);

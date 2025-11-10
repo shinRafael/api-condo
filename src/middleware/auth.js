@@ -27,6 +27,9 @@ function verificarToken(request, response, next) {
   // =========================
   //  MODO DEV: bypass completo
   // =========================
+  console.log("🚀 Entrou no middleware verificarToken");
+if (isDevMode()) console.log("✅ MODO DEV DETECTADO");
+
   if (isDevMode()) {
     // 1) Se frontend enviar header X-Dev-User com JSON, usa isso
     const headerDevUser = request.headers['x-dev-user'];

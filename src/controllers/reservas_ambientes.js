@@ -13,9 +13,12 @@ module.exports = {
       const sql = `
         SELECT 
           res.*, 
-          amb.amd_nome 
+          amb.amd_nome,
+          u.user_nome
         FROM reservas_ambientes AS res
         INNER JOIN ambientes AS amb ON res.amd_id = amb.amd_id
+        LEFT JOIN usuario_apartamentos AS ua ON res.userap_id = ua.userap_id
+        LEFT JOIN usuarios AS u ON ua.user_id = u.user_id
         ORDER BY res.res_data_reserva DESC;
       `;
       const [dados] = await db.query(sql);
@@ -126,10 +129,35 @@ module.exports = {
         });
       }
 
-      const campos = Object.keys(camposParaAtualizar)
+      // Campos permitidos para atualização
+      const camposPermitidos = [
+        'res_data_reserva',
+        'res_horario_inicio',
+        'res_horario_fim',
+        'res_status',
+        'amd_id',
+        'userap_id'
+      ];
+
+      // Filtra apenas campos permitidos
+      const camposValidados = {};
+      Object.keys(camposParaAtualizar).forEach((campo) => {
+        if (camposPermitidos.includes(campo)) {
+          camposValidados[campo] = camposParaAtualizar[campo];
+        }
+      });
+
+      if (Object.keys(camposValidados).length === 0) {
+        return response.status(400).json({
+          sucesso: false,
+          mensagem: 'Nenhum campo válido foi fornecido para atualização.',
+        });
+      }
+
+      const campos = Object.keys(camposValidados)
         .map((c) => `${c} = ?`)
         .join(', ');
-      const valores = Object.values(camposParaAtualizar);
+      const valores = Object.values(camposValidados);
       valores.push(id);
 
       const sql = `UPDATE reservas_ambientes SET ${campos} WHERE res_id = ?;`;

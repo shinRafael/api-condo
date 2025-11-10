@@ -98,7 +98,12 @@ module.exports = {
   async editarapartamentos(request, response) {
     try {
       const { id } = request.params;
-      const { bloc_id, ap_numero, ap_andar } = request.body;
+      // Aceita tanto o formato antigo quanto o novo
+      const { bloc_id, bloc, ap_numero, numero, ap_andar, andar } = request.body;
+      
+      const blocoId = bloc_id || bloc;
+      const numeroAp = ap_numero || numero;
+      const andarAp = ap_andar || andar;
 
       if (!id) {
         return response.status(400).json({
@@ -112,7 +117,7 @@ module.exports = {
         SET bloc_id = ?, ap_numero = ?, ap_andar = ?
         WHERE ap_id = ?;
       `;
-      const values = [bloc_id, ap_numero, ap_andar, id];
+      const values = [blocoId, numeroAp, andarAp, id];
 
       const [result] = await db.query(sql, values);
 
@@ -125,9 +130,9 @@ module.exports = {
 
       const dados = {
         ap_id: id,
-        bloc_id,
-        ap_numero,
-        ap_andar,
+        bloc_id: blocoId,
+        ap_numero: numeroAp,
+        ap_andar: andarAp,
       };
 
       return response.status(200).json({

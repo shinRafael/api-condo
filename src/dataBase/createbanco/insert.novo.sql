@@ -1,9 +1,9 @@
 -- 1 - CONDOMINIO
-INSERT INTO condominio (cond_nome, cond_endereco, cond_cidade, cond_estado) VALUES
-('Residencial Jardim Europa', 'Rua das Flores, 123', 'São Paulo', 'SP'),
-('Condomínio Sol Nascente', 'Av. Brasil, 456', 'Rio de Janeiro', 'RJ'),
-('Village das Palmeiras', 'Rua Central, 789', 'Belo Horizonte', 'MG'),
-('Residencial Porto Seguro', 'Av. Atlântica, 1000', 'Salvador', 'BA');
+INSERT INTO condominio (cond_nome, cond_endereco, cond_cidade, cond_estado, cond_taxa_base) VALUES
+('Residencial Jardim Europa', 'Rua das Flores, 123', 'São Paulo', 'SP', 350.00),
+('Condomínio Sol Nascente', 'Av. Brasil, 456', 'Rio de Janeiro', 'RJ', 420.00),
+('Village das Palmeiras', 'Rua Central, 789', 'Belo Horizonte', 'MG', 280.00),
+('Residencial Porto Seguro', 'Av. Atlântica, 1000', 'Salvador', 'BA', 395.00);
 
 -- 2 - USUARIOS (Com senhas em hash bcrypt e nova coluna user_foto)
 INSERT INTO usuarios (user_nome, user_email, user_senha, user_telefone, user_tipo, user_foto, user_push_token, user_data_cadastro) VALUES

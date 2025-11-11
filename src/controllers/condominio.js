@@ -16,7 +16,8 @@ module.exports = {
           cond_nome, 
           cond_endereco,
           cond_cidade, 
-          cond_estado
+          cond_estado,
+          cond_taxa_base
         FROM condominio;
       `;
       const [rows] = await db.query(sql);
@@ -41,7 +42,7 @@ module.exports = {
   // =============================================================
   async cadastrarcondominio(request, response) {
     try {
-      const { nome, endereco, cidade, estado } = request.body;
+      const { nome, endereco, cidade, estado, taxa_base } = request.body;
 
       if (!nome || !cidade || !estado) {
         return response.status(400).json({
@@ -50,11 +51,13 @@ module.exports = {
         });
       }
 
+      const taxaBase = taxa_base || 0.00; // Valor padrão se não informado
+
       const sql = `
-        INSERT INTO condominio (cond_nome, cond_endereco, cond_cidade, cond_estado)
-        VALUES (?, ?, ?, ?);
+        INSERT INTO condominio (cond_nome, cond_endereco, cond_cidade, cond_estado, cond_taxa_base)
+        VALUES (?, ?, ?, ?, ?);
       `;
-      const values = [nome, endereco, cidade, estado];
+      const values = [nome, endereco, cidade, estado, taxaBase];
       const [result] = await db.query(sql, values);
 
       const dados = {
@@ -63,6 +66,7 @@ module.exports = {
         endereco,
         cidade,
         estado,
+        taxa_base: taxaBase,
       };
 
       return response.status(201).json({
@@ -85,7 +89,7 @@ module.exports = {
   async editarcondominio(request, response) {
     try {
       const { id } = request.params;
-      const { nome, endereco, cidade, estado } = request.body;
+      const { nome, endereco, cidade, estado, taxa_base } = request.body;
 
       if (!id) {
         return response.status(400).json({
@@ -94,30 +98,44 @@ module.exports = {
         });
       }
 
-      const sql = `
-        UPDATE condominio 
-        SET cond_nome = ?, cond_endereco = ?, cond_cidade = ?, cond_estado = ?
-        WHERE cond_id = ?;
-      `;
-      const values = [nome, endereco, cidade, estado, id];
-      const [result] = await db.query(sql, values);
+      // Buscar dados atuais para manter valores se não informados
+      const [condominioAtual] = await db.query(
+        'SELECT * FROM condominio WHERE cond_id = ?',
+        [id]
+      );
 
-      if (result.affectedRows === 0) {
+      if (condominioAtual.length === 0) {
         return response.status(404).json({
           sucesso: false,
           mensagem: `Condomínio ${id} não encontrado.`,
         });
       }
 
+      // Usar valores atuais se novos não forem informados
+      const nomeAtualizar = nome !== undefined ? nome : condominioAtual[0].cond_nome;
+      const enderecoAtualizar = endereco !== undefined ? endereco : condominioAtual[0].cond_endereco;
+      const cidadeAtualizar = cidade !== undefined ? cidade : condominioAtual[0].cond_cidade;
+      const estadoAtualizar = estado !== undefined ? estado : condominioAtual[0].cond_estado;
+      const taxaBaseAtualizar = taxa_base !== undefined ? taxa_base : condominioAtual[0].cond_taxa_base;
+
+      const sql = `
+        UPDATE condominio 
+        SET cond_nome = ?, cond_endereco = ?, cond_cidade = ?, cond_estado = ?, cond_taxa_base = ?
+        WHERE cond_id = ?;
+      `;
+      const values = [nomeAtualizar, enderecoAtualizar, cidadeAtualizar, estadoAtualizar, taxaBaseAtualizar, id];
+      await db.query(sql, values);
+
       return response.status(200).json({
         sucesso: true,
         mensagem: `Condomínio ${id} atualizado com sucesso.`,
         dados: {
           id,
-          nome,
-          endereco,
-          cidade,
-          estado,
+          nome: nomeAtualizar,
+          endereco: enderecoAtualizar,
+          cidade: cidadeAtualizar,
+          estado: estadoAtualizar,
+          taxa_base: taxaBaseAtualizar,
         },
       });
     } catch (error) {

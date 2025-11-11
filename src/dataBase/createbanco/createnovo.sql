@@ -40,7 +40,8 @@ CREATE TABLE condominio (
     cond_nome VARCHAR(60) NOT NULL,
     cond_endereco VARCHAR(130),
     cond_cidade VARCHAR(60),
-    cond_estado VARCHAR(2)
+    cond_estado VARCHAR(2),
+    cond_taxa_base DECIMAL(10, 2) DEFAULT 0.00 -- ✅ ADICIONADO: Valor da taxa condominial base
 ) ENGINE=InnoDB;
 
 -- 2 - USUARIOS (Tabela Mãe)

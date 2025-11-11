@@ -59,7 +59,7 @@ module.exports = {
 
       const sql = `
         SELECT 
-          u.user_id, u.user_nome, u.user_email, u.user_telefone, u.user_tipo, u.user_foto,
+          u.user_id, u.user_nome, u.user_email, u.user_telefone, u.user_tipo, u.user_foto, u.user_data_cadastro,
           ua.userap_id,
           ua.ap_id,
           a.ap_numero,
@@ -70,7 +70,8 @@ module.exports = {
           c.cond_nome,
           c.cond_endereco,
           c.cond_cidade,
-          c.cond_estado
+          c.cond_estado,
+          c.cond_taxa_base
         FROM usuarios u
         LEFT JOIN usuario_apartamentos ua ON u.user_id = ua.user_id
         LEFT JOIN apartamentos a ON ua.ap_id = a.ap_id
@@ -265,7 +266,7 @@ module.exports = {
       // Buscar dados atualizados do usuário
       const sqlSelect = `
         SELECT 
-          u.user_id, u.user_nome, u.user_email, u.user_telefone, u.user_tipo, u.user_foto,
+          u.user_id, u.user_nome, u.user_email, u.user_telefone, u.user_tipo, u.user_foto, u.user_data_cadastro,
           ua.userap_id,
           ua.ap_id,
           a.ap_numero,
@@ -276,7 +277,8 @@ module.exports = {
           c.cond_nome,
           c.cond_endereco,
           c.cond_cidade,
-          c.cond_estado
+          c.cond_estado,
+          c.cond_taxa_base
         FROM usuarios u
         LEFT JOIN usuario_apartamentos ua ON u.user_id = ua.user_id
         LEFT JOIN apartamentos a ON ua.ap_id = a.ap_id
@@ -430,7 +432,7 @@ module.exports = {
 
       const sql = `
         SELECT 
-          u.user_id, u.user_nome, u.user_email, u.user_telefone, u.user_tipo, u.user_senha, u.user_foto,
+          u.user_id, u.user_nome, u.user_email, u.user_telefone, u.user_tipo, u.user_senha, u.user_foto, u.user_data_cadastro,
           ua.userap_id,
           ua.ap_id,
           a.ap_numero,
@@ -440,7 +442,8 @@ module.exports = {
           c.cond_nome,
           c.cond_endereco,
           c.cond_cidade,
-          c.cond_estado
+          c.cond_estado,
+          c.cond_taxa_base
         FROM usuarios u
         LEFT JOIN usuario_apartamentos ua ON u.user_id = ua.user_id
         LEFT JOIN apartamentos a ON ua.ap_id = a.ap_id

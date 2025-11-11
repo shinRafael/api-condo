@@ -8,6 +8,16 @@
 -- 1 - CONDOMINIO
 SELECT * FROM condominio;
 
+-- 1.1 - CONDOMINIO (Com detalhes específicos)
+SELECT 
+    cond_id,
+    cond_nome,
+    cond_endereco,
+    cond_cidade,
+    cond_estado,
+    cond_taxa_base
+FROM condominio;
+
 -- 2 - USUARIOS
 SELECT * FROM usuarios;
 

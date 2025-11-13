@@ -167,9 +167,6 @@ module.exports = {
       const { user_nome, user_email, user_telefone, user_senha, user_tipo, user_foto } =
         request.body;
 
-      console.log('📝 [editarusuario] Editando usuário:', id);
-      console.log('📝 [editarusuario] Campos recebidos:', { user_nome, user_email, user_telefone, user_tipo, user_foto: user_foto ? 'presente' : 'ausente' });
-
       // Validação: morador só pode editar próprio perfil
       if (
         request.user.userType === 'Morador' &&
@@ -221,9 +218,9 @@ module.exports = {
         });
       }
 
-      // Verificar se usuário existe
+      // Verificar se usuário existe e buscar dados atuais
       const [usuarioExiste] = await db.query(
-        'SELECT user_nome, user_tipo FROM usuarios WHERE user_id = ?',
+        'SELECT user_nome, user_tipo, user_foto FROM usuarios WHERE user_id = ?',
         [id]
       );
 
@@ -241,6 +238,8 @@ module.exports = {
       // Para edição de perfil (morador), manter nome e tipo originais
       const nomeAtualizar = user_nome || usuarioExiste[0].user_nome;
       const tipoAtualizar = user_tipo || usuarioExiste[0].user_tipo;
+      // ✅ CORREÇÃO: Manter foto atual se não for enviada
+      const fotoAtualizar = user_foto !== undefined ? user_foto : usuarioExiste[0].user_foto;
 
       let sql, values;
       if (user_senha) {
@@ -251,14 +250,14 @@ module.exports = {
           SET user_nome = ?, user_email = ?, user_telefone = ?, user_senha = ?, user_tipo = ?, user_foto = ?
           WHERE user_id = ?
         `;
-        values = [nomeAtualizar, user_email, telefone, senhaHash, tipoAtualizar, user_foto || null, id];
+        values = [nomeAtualizar, user_email, telefone, senhaHash, tipoAtualizar, fotoAtualizar, id];
       } else {
         sql = `
           UPDATE usuarios 
           SET user_nome = ?, user_email = ?, user_telefone = ?, user_tipo = ?, user_foto = ?
           WHERE user_id = ?
         `;
-        values = [nomeAtualizar, user_email, telefone, tipoAtualizar, user_foto || null, id];
+        values = [nomeAtualizar, user_email, telefone, tipoAtualizar, fotoAtualizar, id];
       }
 
       await db.query(sql, values);
@@ -546,8 +545,26 @@ module.exports = {
       }
 
       // Atualizar banco de dados
+      
       const sql = 'UPDATE usuarios SET user_foto = ? WHERE user_id = ?';
-      await db.query(sql, [fotoPath, id]);
+      const [resultado] = await db.query(sql, [fotoPath, id]);
+
+      // Verificar se realmente salvou
+      const [verificacao] = await db.query(
+        'SELECT user_id, user_foto FROM usuarios WHERE user_id = ?',
+        [id]
+      );
+
+      if (!verificacao[0] || verificacao[0].user_foto !== fotoPath) {
+        return response.status(500).json({
+          sucesso: false,
+          mensagem: 'Erro: foto foi salva no servidor mas não foi atualizada no banco de dados.',
+          dados: {
+            esperado: fotoPath,
+            obtido: verificacao[0]?.user_foto,
+          },
+        });
+      }
 
       return response.status(200).json({
         sucesso: true,

@@ -3,6 +3,7 @@
 // ===============================================================
 
 const db = require('../dataBase/connection');
+const { notificarNovaOcorrencia, notificarOcorrenciaAtualizada, notificarMensagemOcorrencia } = require('../helpers/notificationHelper');
 
 module.exports = {
   // =============================================================
@@ -115,6 +116,9 @@ module.exports = {
       const values = [userap_id, protocoloFormatado, oco_categoria, oco_descricao, oco_localizacao, 'Aberta', prioridadePadrao, oco_imagem];
       const [result] = await db.query(sqlInsert, values);
 
+      // 🔔 Notificar morador sobre nova ocorrência
+      await notificarNovaOcorrencia(userap_id, protocoloFormatado, oco_categoria);
+
       // Busca o registro recém-inserido para retornar completo
       const [insertedRow] = await db.query(
         `
@@ -184,14 +188,29 @@ module.exports = {
       }
       values.push(id);
 
-      const sql = `UPDATE ocorrencias SET ${campos.join(', ')} WHERE oco_id = ?;`;
-      const [result] = await db.query(sql, values);
+      // Buscar dados da ocorrência antes de atualizar
+      const [ocorrenciaAtual] = await db.query(
+        'SELECT userap_id, oco_protocolo, oco_status FROM ocorrencias WHERE oco_id = ?',
+        [id]
+      );
 
-      if (result.affectedRows === 0) {
+      if (ocorrenciaAtual.length === 0) {
         return response.status(404).json({
           sucesso: false,
           mensagem: `Ocorrência com ID ${id} não encontrada.`,
         });
+      }
+
+      const sql = `UPDATE ocorrencias SET ${campos.join(', ')} WHERE oco_id = ?;`;
+      const [result] = await db.query(sql, values);
+
+      // 🔔 Notificar morador se status mudou
+      if (oco_status && oco_status !== ocorrenciaAtual[0].oco_status) {
+        await notificarOcorrenciaAtualizada(
+          ocorrenciaAtual[0].userap_id,
+          ocorrenciaAtual[0].oco_protocolo,
+          oco_status
+        );
       }
 
       return response.status(200).json({
@@ -287,11 +306,27 @@ module.exports = {
         });
       }
 
+      // Buscar dados da ocorrência
+      const [ocorrencia] = await db.query(
+        'SELECT userap_id, oco_protocolo FROM ocorrencias WHERE oco_id = ?',
+        [id]
+      );
+
+      if (ocorrencia.length === 0) {
+        return response.status(404).json({
+          sucesso: false,
+          mensagem: 'Ocorrência não encontrada.',
+        });
+      }
+
       const sqlInsert = `
         INSERT INTO ocorrencia_mensagens (oco_id, user_id, ocomsg_mensagem, ocomsg_data_envio)
         VALUES (?, ?, ?, NOW());
       `;
       const [result] = await db.query(sqlInsert, [id, remetente_user_id, ocomsg_mensagem]);
+
+      // 🔔 Notificar morador sobre nova mensagem
+      await notificarMensagemOcorrencia(ocorrencia[0].userap_id, ocorrencia[0].oco_protocolo);
 
       const [rows] = await db.query(
         `

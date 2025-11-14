@@ -6,6 +6,7 @@ const db = require('../dataBase/connection');
 const { randomUUID } = require('crypto');
 const { Expo } = require('expo-server-sdk');
 const expo = new Expo();
+const { notificarVisitanteAutorizado, notificarVisitanteChegou } = require('../helpers/notificationHelper');
 
 // ===============================================================
 // 🔧 Função auxiliar — formata telefones no padrão brasileiro
@@ -134,6 +135,9 @@ module.exports = {
       const [result] = await db.query(sql, [
         userap_id, vst_nome, celularFormatado, vst_documento, vst_validade_inicio, vst_validade_fim, vst_qrcode_hash
       ]);
+
+      // 🔔 Notificar morador sobre visitante autorizado
+      await notificarVisitanteAutorizado(userap_id, vst_nome, vst_validade_fim);
 
       return response.status(201).json({
         sucesso: true,
@@ -264,6 +268,14 @@ module.exports = {
   async registrarentrada(request, response) {
     try {
       const { id } = request.params;
+      
+      // Buscar dados do visitante antes de atualizar
+      const [visitante] = await db.query('SELECT userap_id, vst_nome FROM visitantes WHERE vst_id = ?', [id]);
+      
+      if (visitante.length === 0) {
+        return response.status(404).json({ sucesso: false, mensagem: `Visitante ${id} não encontrado.` });
+      }
+      
       const sql = `
         UPDATE visitantes
         SET vst_status = 'Entrou', vst_data_entrada = NOW()
@@ -274,6 +286,9 @@ module.exports = {
       if (!result.affectedRows) {
         return response.status(404).json({ sucesso: false, mensagem: `Autorização ${id} não encontrada ou já registrada.` });
       }
+
+      // 🔔 Notificar morador que visitante chegou
+      await notificarVisitanteChegou(visitante[0].userap_id, visitante[0].vst_nome);
 
       return response.status(200).json({
         sucesso: true,

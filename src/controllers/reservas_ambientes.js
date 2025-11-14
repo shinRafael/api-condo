@@ -3,6 +3,7 @@
 // ===============================================================
 
 const db = require('../dataBase/connection');
+const { notificarReservaConfirmada, notificarReservaCancelada } = require('../helpers/notificationHelper');
 
 module.exports = {
   // =============================================================
@@ -202,11 +203,16 @@ module.exports = {
       const { userType, userApId } = request.user;
 
       // Verificar se a reserva existe e se o usuário tem permissão
-      let sqlCheck = `SELECT res_id, userap_id, res_status FROM reservas_ambientes WHERE res_id = ?`;
+      let sqlCheck = `
+        SELECT r.res_id, r.userap_id, r.res_status, r.res_data_reserva, a.amd_nome 
+        FROM reservas_ambientes r
+        JOIN ambientes a ON r.amd_id = a.amd_id
+        WHERE r.res_id = ?
+      `;
       const paramsCheck = [id];
 
       if (userType === 'Morador') {
-        sqlCheck += ` AND userap_id = ?`;
+        sqlCheck += ` AND r.userap_id = ?`;
         paramsCheck.push(userApId);
       }
 
@@ -229,6 +235,10 @@ module.exports = {
       // Cancelar a reserva
       const sqlUpdate = `UPDATE reservas_ambientes SET res_status = 'Cancelado' WHERE res_id = ?`;
       await db.query(sqlUpdate, [id]);
+
+      // 🔔 Notificar morador sobre cancelamento
+      const { userap_id, amd_nome, res_data_reserva } = reservas[0];
+      await notificarReservaCancelada(userap_id, amd_nome, res_data_reserva);
 
       return response.status(200).json({
         sucesso: true,
@@ -267,7 +277,7 @@ module.exports = {
       }
 
       // Validar se o ambiente existe
-      const [ambiente] = await db.query('SELECT amd_id FROM ambientes WHERE amd_id = ?', [amd_id]);
+      const [ambiente] = await db.query('SELECT amd_nome FROM ambientes WHERE amd_id = ?', [amd_id]);
       if (ambiente.length === 0) {
         return response.status(404).json({
           sucesso: false,
@@ -290,6 +300,10 @@ module.exports = {
       ];
 
       const [result] = await db.query(sql, values);
+
+      // 🔔 Notificar morador sobre nova reserva
+      const nomeAmbiente = ambiente[0].amd_nome;
+      await notificarReservaConfirmada(userApId, nomeAmbiente, res_data_reserva, res_horario_inicio);
 
       return response.status(201).json({
         sucesso: true,

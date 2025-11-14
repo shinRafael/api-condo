@@ -3,6 +3,7 @@
 // ===============================================================
 
 const db = require('../dataBase/connection');
+const { notificarNovaEncomenda, notificarEncomendaRetirada } = require('../helpers/notificationHelper');
 
 module.exports = {
   // =============================================================
@@ -119,6 +120,9 @@ module.exports = {
 
       const [result] = await db.query(sql, values);
 
+      // 🔔 Notificar morador sobre nova encomenda
+      await notificarNovaEncomenda(userap_id, enc_nome_loja, enc_codigo_rastreio);
+
       return response.status(201).json({
         sucesso: true,
         mensagem: 'Encomenda cadastrada com sucesso.',
@@ -156,6 +160,16 @@ module.exports = {
         });
       }
 
+      // Buscar dados da encomenda antes de atualizar
+      const [encomendaAtual] = await db.query('SELECT * FROM encomendas WHERE enc_id = ?', [id]);
+      
+      if (encomendaAtual.length === 0) {
+        return response.status(404).json({
+          sucesso: false,
+          mensagem: `Encomenda ${id} não encontrada.`,
+        });
+      }
+
       const sql = `
         UPDATE encomendas
         SET enc_nome_loja = ?, enc_codigo_rastreio = ?, enc_status = ?, enc_data_retirada = ?
@@ -171,11 +185,9 @@ module.exports = {
 
       const [result] = await db.query(sql, values);
 
-      if (result.affectedRows === 0) {
-        return response.status(404).json({
-          sucesso: false,
-          mensagem: `Encomenda ${id} não encontrada.`,
-        });
+      // 🔔 Notificar morador se status mudou para "Entregue"
+      if (enc_status === 'Entregue' && encomendaAtual[0].enc_status !== 'Entregue') {
+        await notificarEncomendaRetirada(encomendaAtual[0].userap_id, enc_nome_loja);
       }
 
       return response.status(200).json({

@@ -6,26 +6,74 @@ const db = require('../dataBase/connection');
 
 module.exports = {
   // =============================================================
-  // 📋 LISTAR TODAS AS RESERVAS
+  // 🏢 LISTAR AMBIENTES DISPONÍVEIS
   // =============================================================
-  async listarreservas_ambientes(request, response) {
+  async listarAmbientes(request, response) {
     try {
       const sql = `
         SELECT 
-          res.*, 
-          amb.amd_nome,
-          u.user_nome
-        FROM reservas_ambientes AS res
-        INNER JOIN ambientes AS amb ON res.amd_id = amb.amd_id
-        LEFT JOIN usuario_apartamentos AS ua ON res.userap_id = ua.userap_id
-        LEFT JOIN usuarios AS u ON ua.user_id = u.user_id
-        ORDER BY res.res_data_reserva DESC;
+          amd_id,
+          cond_id,
+          amd_nome,
+          amd_descricao,
+          amd_capacidade
+        FROM ambientes
+        ORDER BY amd_nome ASC;
       `;
       const [dados] = await db.query(sql);
 
       return response.status(200).json({
         sucesso: true,
-        mensagem: 'Lista de reservas de ambientes obtida com sucesso.',
+        mensagem: 'Ambientes listados com sucesso.',
+        dados,
+      });
+    } catch (error) {
+      console.error('❌ Erro ao listar ambientes:', error);
+      return response.status(500).json({
+        sucesso: false,
+        mensagem: 'Erro interno ao buscar ambientes.',
+        dados: error.message,
+      });
+    }
+  },
+
+  // =============================================================
+  // 📋 LISTAR RESERVAS (Com filtro automático por tipo de usuário)
+  // =============================================================
+  async listarreservas_ambientes(request, response) {
+    try {
+      const { userType, userApId } = request.user;
+      
+      let sql = `
+        SELECT 
+          res.*, 
+          amb.amd_nome,
+          u.user_nome,
+          a.ap_numero
+        FROM reservas_ambientes AS res
+        INNER JOIN ambientes AS amb ON res.amd_id = amb.amd_id
+        LEFT JOIN usuario_apartamentos AS ua ON res.userap_id = ua.userap_id
+        LEFT JOIN usuarios AS u ON ua.user_id = u.user_id
+        LEFT JOIN apartamentos AS a ON ua.ap_id = a.ap_id
+      `;
+
+      const params = [];
+
+      // 🔐 Filtro de segurança por tipo de usuário
+      if (userType === 'Morador') {
+        // Morador vê apenas suas próprias reservas
+        sql += ` WHERE res.userap_id = ?`;
+        params.push(userApId);
+      }
+      // Sindico/Funcionario/ADM veem todas as reservas
+
+      sql += ` ORDER BY res.res_data_reserva DESC, res.res_horario_inicio DESC;`;
+      
+      const [dados] = await db.query(sql, params);
+
+      return response.status(200).json({
+        sucesso: true,
+        mensagem: 'Lista de reservas obtida com sucesso.',
         dados,
       });
     } catch (error) {
@@ -39,31 +87,191 @@ module.exports = {
   },
 
   // =============================================================
-  // 🏗️ CADASTRAR NOVA RESERVA (Morador ou Síndico)
+  // 🔍 OBTER DETALHES DE UMA RESERVA
   // =============================================================
-  async cadastrarreservas_ambientes(request, response) {
+  async obterReserva(request, response) {
     try {
-      const { userType } = request.user || {};
-      if (!['Morador', 'Sindico'].includes(userType)) {
-        return response.status(403).json({
+      const { id } = request.params;
+      const { userType, userApId } = request.user;
+
+      let sql = `
+        SELECT 
+          res.*,
+          amb.amd_nome,
+          amb.amd_descricao,
+          amb.amd_capacidade,
+          u.user_nome,
+          u.user_telefone,
+          a.ap_numero
+        FROM reservas_ambientes AS res
+        INNER JOIN ambientes AS amb ON res.amd_id = amb.amd_id
+        LEFT JOIN usuario_apartamentos AS ua ON res.userap_id = ua.userap_id
+        LEFT JOIN usuarios AS u ON ua.user_id = u.user_id
+        LEFT JOIN apartamentos AS a ON ua.ap_id = a.ap_id
+        WHERE res.res_id = ?
+      `;
+
+      const params = [id];
+
+      // 🔐 Morador só pode ver suas próprias reservas
+      if (userType === 'Morador') {
+        sql += ` AND res.userap_id = ?`;
+        params.push(userApId);
+      }
+
+      const [dados] = await db.query(sql, params);
+
+      if (dados.length === 0) {
+        return response.status(404).json({
           sucesso: false,
-          mensagem: 'Apenas moradores ou síndicos podem criar reservas.',
+          mensagem: 'Reserva não encontrada ou você não tem permissão para visualizá-la.',
         });
       }
 
+      return response.status(200).json({
+        sucesso: true,
+        mensagem: 'Reserva obtida com sucesso.',
+        dados: dados[0],
+      });
+    } catch (error) {
+      console.error('❌ Erro ao obter reserva:', error);
+      return response.status(500).json({
+        sucesso: false,
+        mensagem: 'Erro interno ao buscar reserva.',
+        dados: error.message,
+      });
+    }
+  },
+
+  // =============================================================
+  // 📅 LISTAR RESERVAS DE UM AMBIENTE ESPECÍFICO
+  // =============================================================
+  async listarReservasPorAmbiente(request, response) {
+    try {
+      const { amd_id } = request.params;
+      const { data } = request.query; // Opcional: filtrar por data
+
+      let sql = `
+        SELECT 
+          res.res_id,
+          res.res_data_reserva,
+          res.res_horario_inicio,
+          res.res_horario_fim,
+          res.res_status,
+          u.user_nome,
+          a.ap_numero
+        FROM reservas_ambientes AS res
+        LEFT JOIN usuario_apartamentos AS ua ON res.userap_id = ua.userap_id
+        LEFT JOIN usuarios AS u ON ua.user_id = u.user_id
+        LEFT JOIN apartamentos AS a ON ua.ap_id = a.ap_id
+        WHERE res.amd_id = ?
+      `;
+
+      const params = [amd_id];
+
+      if (data) {
+        sql += ` AND res.res_data_reserva = ?`;
+        params.push(data);
+      }
+
+      sql += ` ORDER BY res.res_data_reserva ASC, res.res_horario_inicio ASC;`;
+
+      const [dados] = await db.query(sql, params);
+
+      return response.status(200).json({
+        sucesso: true,
+        mensagem: 'Reservas do ambiente listadas com sucesso.',
+        dados,
+      });
+    } catch (error) {
+      console.error('❌ Erro ao listar reservas do ambiente:', error);
+      return response.status(500).json({
+        sucesso: false,
+        mensagem: 'Erro interno ao buscar reservas.',
+        dados: error.message,
+      });
+    }
+  },
+
+  // =============================================================
+  // ❌ CANCELAR RESERVA
+  // =============================================================
+  async cancelarReserva(request, response) {
+    try {
+      const { id } = request.params;
+      const { userType, userApId } = request.user;
+
+      // Verificar se a reserva existe e se o usuário tem permissão
+      let sqlCheck = `SELECT res_id, userap_id, res_status FROM reservas_ambientes WHERE res_id = ?`;
+      const paramsCheck = [id];
+
+      if (userType === 'Morador') {
+        sqlCheck += ` AND userap_id = ?`;
+        paramsCheck.push(userApId);
+      }
+
+      const [reservas] = await db.query(sqlCheck, paramsCheck);
+
+      if (reservas.length === 0) {
+        return response.status(404).json({
+          sucesso: false,
+          mensagem: 'Reserva não encontrada ou você não tem permissão para cancelá-la.',
+        });
+      }
+
+      if (reservas[0].res_status === 'Cancelado') {
+        return response.status(400).json({
+          sucesso: false,
+          mensagem: 'Esta reserva já está cancelada.',
+        });
+      }
+
+      // Cancelar a reserva
+      const sqlUpdate = `UPDATE reservas_ambientes SET res_status = 'Cancelado' WHERE res_id = ?`;
+      await db.query(sqlUpdate, [id]);
+
+      return response.status(200).json({
+        sucesso: true,
+        mensagem: 'Reserva cancelada com sucesso.',
+        dados: { res_id: id, res_status: 'Cancelado' },
+      });
+    } catch (error) {
+      console.error('❌ Erro ao cancelar reserva:', error);
+      return response.status(500).json({
+        sucesso: false,
+        mensagem: 'Erro interno ao cancelar reserva.',
+        dados: error.message,
+      });
+    }
+  },
+
+  // =============================================================
+  // 🏗️ CADASTRAR NOVA RESERVA
+  // =============================================================
+  async cadastrarreservas_ambientes(request, response) {
+    try {
+      const { userApId } = request.user; // Pega do token JWT
+
       const {
-        userap_id,
         amd_id,
         res_horario_inicio,
         res_horario_fim,
-        res_status,
         res_data_reserva,
       } = request.body;
 
-      if (!userap_id || !amd_id || !res_horario_inicio || !res_data_reserva) {
+      if (!amd_id || !res_horario_inicio || !res_data_reserva) {
         return response.status(400).json({
           sucesso: false,
-          mensagem: 'Campos obrigatórios ausentes.',
+          mensagem: 'Campos obrigatórios: amd_id, res_horario_inicio, res_data_reserva.',
+        });
+      }
+
+      // Validar se o ambiente existe
+      const [ambiente] = await db.query('SELECT amd_id FROM ambientes WHERE amd_id = ?', [amd_id]);
+      if (ambiente.length === 0) {
+        return response.status(404).json({
+          sucesso: false,
+          mensagem: 'Ambiente não encontrado.',
         });
       }
 
@@ -73,11 +281,11 @@ module.exports = {
         VALUES (?, ?, ?, ?, ?, ?);
       `;
       const values = [
-        userap_id,
+        userApId, // Usa o userap_id do token (segurança)
         amd_id,
         res_horario_inicio,
         res_horario_fim || null,
-        res_status || 'Pendente',
+        'Pendente', // Status padrão
         res_data_reserva,
       ];
 
@@ -88,11 +296,11 @@ module.exports = {
         mensagem: 'Reserva criada com sucesso.',
         dados: {
           res_id: result.insertId,
-          userap_id,
+          userap_id: userApId,
           amd_id,
           res_horario_inicio,
           res_horario_fim,
-          res_status: res_status || 'Pendente',
+          res_status: 'Pendente',
           res_data_reserva,
         },
       });
@@ -226,15 +434,4 @@ module.exports = {
   },
 };
 
-// =============================================================
-// 🧪 ROTAS OPCIONAIS PARA TESTE LOCAL
-// =============================================================
-const express = require('express');
-const router = express.Router();
-
-router.get('/reservas_ambientes', module.exports.listarreservas_ambientes);
-router.post('/reservas_ambientes', module.exports.cadastrarreservas_ambientes);
-router.patch('/reservas_ambientes/:id', module.exports.editarreservas_ambientes);
-router.delete('/reservas_ambientes/:id', module.exports.apagarreservas_ambientes);
-
-module.exports.router = router;
+// Remover as rotas de teste no final do arquivo - não são mais necessárias

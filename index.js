@@ -6,7 +6,16 @@ const path = require("path");
 const router = require("./src/routes/routes");
 
 const app = express();
-app.use(cors());
+
+// Configuração CORS para permitir requisições do frontend
+const corsOptions = {
+  origin: 'http://localhost:3000',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Dev-User'],
+  credentials: true
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Servir arquivos estáticos da pasta uploads

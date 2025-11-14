@@ -40,14 +40,14 @@ const storagePerfil = multer.diskStorage({
 // 🔍 FILTROS DE TIPOS DE ARQUIVO
 // ============================================================
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = /jpeg|jpg|png|pdf|doc|docx/;
+  const allowedTypes = /jpeg|jpg|png/;
   const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
   const mimetype = allowedTypes.test(file.mimetype);
   
   if (extname && mimetype) {
     cb(null, true);
   } else {
-    cb(new Error('Tipo de arquivo não permitido. Use: JPEG, PNG, PDF, DOC ou DOCX'));
+    cb(new Error('Apenas imagens (JPEG, JPG, PNG) são permitidas.'));
   }
 };
 

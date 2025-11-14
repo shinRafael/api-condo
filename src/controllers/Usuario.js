@@ -19,7 +19,7 @@ module.exports = {
     try {
       const sql = `
         SELECT 
-          user_id, user_nome, user_email, user_telefone, user_tipo 
+          user_id, user_nome, user_email, user_telefone, user_tipo, user_foto
         FROM usuarios
         ORDER BY user_nome ASC;
       `;
@@ -105,7 +105,7 @@ module.exports = {
   },
 
   // =============================================================
-  // 🧩 CADASTRAR NOVO USUÁRIO
+  // 🧩 CADASTRAR NOVO USUÁRIO (sem foto no cadastro)
   // =============================================================
   async cadastrarusuario(request, response) {
     try {
@@ -146,7 +146,12 @@ module.exports = {
       return response.status(201).json({
         sucesso: true,
         mensagem: 'Usuário cadastrado com sucesso!',
-        dados: { id: result.insertId, user_nome, user_email, user_tipo },
+        dados: { 
+          id: result.insertId, 
+          user_nome, 
+          user_email, 
+          user_tipo
+        },
       });
     } catch (error) {
       console.error('❌ Erro ao cadastrar usuário:', error);
@@ -163,6 +168,11 @@ module.exports = {
   // =============================================================
   async editarusuario(request, response) {
     try {
+      // 🔍 LOGS PARA DEBUG
+      console.log('📦 Body recebido:', request.body);
+      console.log('📸 Arquivo recebido:', request.file);
+      console.log('🔑 Headers:', request.headers['content-type']);
+      
       const { id } = request.params;
       const { user_nome, user_email, user_telefone, user_senha, user_tipo, user_foto } =
         request.body;
@@ -178,7 +188,49 @@ module.exports = {
         });
       }
 
-      // Validação: email obrigatório
+      // ⚠️ Se for apenas upload de foto (sem outros campos obrigatórios)
+      if (request.file && !user_email) {
+        console.log('🎯 Modo: Upload de foto apenas');
+        
+        // Buscar dados atuais do usuário
+        const [usuarioExiste] = await db.query(
+          'SELECT user_foto FROM usuarios WHERE user_id = ?',
+          [id]
+        );
+
+        if (usuarioExiste.length === 0) {
+          return response.status(404).json({
+            sucesso: false,
+            mensagem: 'Usuário não encontrado.',
+          });
+        }
+
+        const fotoNova = `/uploads/perfil/${request.file.filename}`;
+        
+        // Deletar foto antiga se existir
+        if (usuarioExiste[0].user_foto) {
+          const fs = require('fs');
+          const path = require('path');
+          const oldPhotoPath = path.join(__dirname, '../../', usuarioExiste[0].user_foto);
+          if (fs.existsSync(oldPhotoPath)) {
+            fs.unlinkSync(oldPhotoPath);
+          }
+        }
+
+        // Atualizar apenas a foto
+        await db.query('UPDATE usuarios SET user_foto = ? WHERE user_id = ?', [fotoNova, id]);
+
+        return response.status(200).json({
+          sucesso: true,
+          mensagem: 'Foto atualizada com sucesso.',
+          dados: {
+            user_id: parseInt(id),
+            user_foto: fotoNova
+          }
+        });
+      }
+
+      // Validação: email obrigatório (para atualização completa)
       if (!user_email || user_email.trim() === '') {
         return response.status(400).json({
           sucesso: false,
@@ -238,8 +290,25 @@ module.exports = {
       // Para edição de perfil (morador), manter nome e tipo originais
       const nomeAtualizar = user_nome || usuarioExiste[0].user_nome;
       const tipoAtualizar = user_tipo || usuarioExiste[0].user_tipo;
-      // ✅ CORREÇÃO: Manter foto atual se não for enviada
-      const fotoAtualizar = user_foto !== undefined ? user_foto : usuarioExiste[0].user_foto;
+      
+      // ✅ UPLOAD DE FOTO: Se houver nova foto, usar; senão, manter a atual
+      let fotoAtualizar = usuarioExiste[0].user_foto;
+      if (request.file) {
+        fotoAtualizar = `/uploads/perfil/${request.file.filename}`;
+        
+        // Deletar foto antiga se existir
+        if (usuarioExiste[0].user_foto) {
+          const fs = require('fs');
+          const path = require('path');
+          const oldPhotoPath = path.join(__dirname, '../../', usuarioExiste[0].user_foto);
+          if (fs.existsSync(oldPhotoPath)) {
+            fs.unlinkSync(oldPhotoPath);
+          }
+        }
+      } else if (user_foto !== undefined) {
+        // Se user_foto for enviado no body (não pelo upload), usar ele
+        fotoAtualizar = user_foto;
+      }
 
       let sql, values;
       if (user_senha) {
@@ -479,10 +548,17 @@ module.exports = {
       const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' }); // 7 dias de validade
       delete usuario.user_senha;
 
+      // Formatar resposta conforme esperado pelo frontend
       return response.status(200).json({
-        sucesso: true,
-        mensagem: 'Login bem-sucedido.',
-        dados: { usuario, token },
+        dados: {
+          token: token,
+          usuario: {
+            user_id: usuario.user_id,
+            user_nome: usuario.user_nome,
+            user_email: usuario.user_email,
+            user_tipo: usuario.user_tipo
+          }
+        }
       });
     } catch (error) {
       console.error('❌ Erro ao fazer login:', error);

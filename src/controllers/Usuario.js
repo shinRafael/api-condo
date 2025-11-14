@@ -8,6 +8,7 @@ const jwt = require('jsonwebtoken');
 const path = require('path');
 const fs = require('fs');
 const { uploadPerfil } = require('./upload');
+const transporter = require('../lib/mailer');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_trocar_em_prod';
 
@@ -658,6 +659,169 @@ module.exports = {
       return response.status(500).json({
         sucesso: false,
         mensagem: 'Erro interno ao fazer upload da foto.',
+        dados: error.message,
+      });
+    }
+  },
+
+  // =============================================================
+  // 🔐 SOLICITAR RESET DE SENHA (Enviar código por email)
+  // =============================================================
+  async solicitarReset(request, response) {
+    try {
+      const { user_email } = request.body;
+
+      // Validação: email obrigatório
+      if (!user_email || user_email.trim() === '') {
+        return response.status(400).json({
+          sucesso: false,
+          mensagem: 'Email é obrigatório.',
+        });
+      }
+
+      // Verificar se email existe
+      const [usuario] = await db.query(
+        'SELECT user_id, user_nome FROM usuarios WHERE user_email = ?',
+        [user_email]
+      );
+
+      if (usuario.length === 0) {
+        return response.status(404).json({
+          sucesso: false,
+          mensagem: 'Email não encontrado.',
+        });
+      }
+
+      // Gerar código de 6 dígitos
+      const codigo = Math.floor(100000 + Math.random() * 900000).toString();
+
+      // Definir expiração (10 minutos)
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+      // Salvar no banco
+      await db.query(
+        'UPDATE usuarios SET user_reset_token = ?, user_reset_expires = ? WHERE user_email = ?',
+        [codigo, expiresAt, user_email]
+      );
+
+      // Enviar email
+      try {
+        await transporter.sendMail({
+          from: '"CondoWay" <noreply@condoway.com>',
+          to: user_email,
+          subject: '🔐 Código de Recuperação de Senha - CondoWay',
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h2 style="color: #4F46E5;">Recuperação de Senha</h2>
+              <p>Olá, <strong>${usuario[0].user_nome}</strong>!</p>
+              <p>Você solicitou a recuperação de senha da sua conta no CondoWay.</p>
+              <p>Seu código de verificação é:</p>
+              <div style="background-color: #F3F4F6; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0;">
+                <h1 style="color: #4F46E5; font-size: 36px; margin: 0; letter-spacing: 8px;">${codigo}</h1>
+              </div>
+              <p><strong>⏰ Este código expira em 10 minutos.</strong></p>
+              <p>Se você não solicitou esta recuperação, ignore este email.</p>
+              <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 30px 0;">
+              <p style="color: #6B7280; font-size: 12px;">
+                Este é um email automático. Por favor, não responda.
+              </p>
+            </div>
+          `,
+        });
+
+        console.log('✅ Email de recuperação enviado para:', user_email);
+      } catch (emailError) {
+        console.error('❌ Erro ao enviar email:', emailError);
+        return response.status(500).json({
+          sucesso: false,
+          mensagem: 'Erro ao enviar email. Tente novamente mais tarde.',
+          dados: emailError.message,
+        });
+      }
+
+      return response.status(200).json({
+        sucesso: true,
+        mensagem: 'Código de recuperação enviado para seu email.',
+        // ⚠️ REMOVER EM PRODUÇÃO (apenas para testes)
+        codigo_dev: process.env.NODE_ENV === 'development' ? codigo : undefined,
+      });
+    } catch (error) {
+      console.error('❌ Erro ao solicitar reset:', error);
+      return response.status(500).json({
+        sucesso: false,
+        mensagem: 'Erro interno ao processar solicitação.',
+        dados: error.message,
+      });
+    }
+  },
+
+  // =============================================================
+  // 🔄 RESETAR SENHA (Validar código e atualizar senha)
+  // =============================================================
+  async resetarSenha(request, response) {
+    try {
+      const { codigo, novaSenha } = request.body;
+
+      // Validações
+      if (!codigo || !novaSenha) {
+        return response.status(400).json({
+          sucesso: false,
+          mensagem: 'Código e nova senha são obrigatórios.',
+        });
+      }
+
+      if (novaSenha.length < 6) {
+        return response.status(400).json({
+          sucesso: false,
+          mensagem: 'A nova senha deve ter no mínimo 6 caracteres.',
+        });
+      }
+
+      // Buscar usuário pelo token (não precisa do email)
+      const [usuario] = await db.query(
+        'SELECT user_id, user_nome, user_reset_token, user_reset_expires FROM usuarios WHERE user_reset_token = ?',
+        [codigo]
+      );
+
+      if (usuario.length === 0) {
+        return response.status(400).json({
+          sucesso: false,
+          mensagem: 'Código inválido ou não encontrado.',
+        });
+      }
+
+      // Verificar se token expirou
+      const agora = new Date();
+      const expiraEm = new Date(usuario[0].user_reset_expires);
+
+      if (agora > expiraEm) {
+        return response.status(400).json({
+          sucesso: false,
+          mensagem: 'Código expirado. Solicite um novo código.',
+        });
+      }
+
+      // Hash da nova senha
+      const salt = await bcrypt.genSalt(10);
+      const senhaHash = await bcrypt.hash(novaSenha, salt);
+
+      // Atualizar senha e limpar token
+      await db.query(
+        'UPDATE usuarios SET user_senha = ?, user_reset_token = NULL, user_reset_expires = NULL WHERE user_id = ?',
+        [senhaHash, usuario[0].user_id]
+      );
+
+      console.log('✅ Senha redefinida para usuário:', usuario[0].user_nome);
+
+      return response.status(200).json({
+        sucesso: true,
+        mensagem: 'Senha redefinida com sucesso! Faça login com sua nova senha.',
+      });
+    } catch (error) {
+      console.error('❌ Erro ao resetar senha:', error);
+      return response.status(500).json({
+        sucesso: false,
+        mensagem: 'Erro interno ao resetar senha.',
         dados: error.message,
       });
     }

@@ -5,12 +5,12 @@ INSERT INTO condominio (cond_nome, cond_endereco, cond_cidade, cond_estado, cond
 ('Village das Palmeiras', 'Rua Central, 789', 'Belo Horizonte', 'MG', 280.00),
 ('Residencial Porto Seguro', 'Av. Atlântica, 1000', 'Salvador', 'BA', 395.00);
 
--- 2 - USUARIOS (Com senhas em hash bcrypt e nova coluna user_foto)
-INSERT INTO usuarios (user_nome, user_email, user_senha, user_telefone, user_tipo, user_foto, user_push_token, user_data_cadastro) VALUES
-('Ana Souza', 'ana@email.com', '$2b$10$rWXeRRzalMkCLoltjYv/q.YhE055agY.jShKk4hXeAJ6HgwCbMpn2', '11998765432', 'Morador', NULL, NULL, '2023-01-15 10:30:00'),
-('Carlos Pereira', 'carlos@email.com', '$2b$10$MlvR9yagNA48l08wWyS.h.YfW/Ovo57SOz4o6dr9uqo0NtzvlJXB6', '21988776655', 'Sindico', NULL, 'ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]', '2023-02-20 14:15:00'),
-('Fernanda Lima', 'fernanda@email.com', '$2b$10$aF70EgAHIt9F31/AOzN8oOsTxUQqcM8etywyVI1zExUefhqqhbwzu', '31977665544', 'ADM', NULL, 'ExponentPushToken[yyyyyyyyyyyyyyyyyyyyyy]', '2023-03-05 09:00:00'),
-('João Oliveira', 'joao@email.com', '$2b$10$43vsX/eaHAZRBjcQb6lNI.z3pcQ4qcZPTV3iGt7dto9ujPVxGCCq6', '71966554433', 'Funcionario', NULL, NULL, '2023-04-10 11:45:00');
+-- 2 - USUARIOS (Com senhas em hash bcrypt e novas colunas)
+INSERT INTO usuarios (user_nome, user_email, user_senha, user_telefone, user_tipo, user_foto, user_push_token, user_data_cadastro, user_reset_token, user_reset_expires) VALUES
+('Ana Souza', 'ana@email.com', '$2b$10$rWXeRRzalMkCLoltjYv/q.YhE055agY.jShKk4hXeAJ6HgwCbMpn2', '11998765432', 'Morador', NULL, NULL, '2023-01-15 10:30:00', NULL, NULL),
+('Carlos Pereira', 'carlos@email.com', '$2b$10$MlvR9yagNA48l08wWyS.h.YfW/Ovo57SOz4o6dr9uqo0NtzvlJXB6', '21988776655', 'Sindico', NULL, 'ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]', '2023-02-20 14:15:00', NULL, NULL),
+('Fernanda Lima', 'fernanda@email.com', '$2b$10$aF70EgAHIt9F31/AOzN8oOsTxUQqcM8etywyVI1zExUefhqqhbwzu', '31977665544', 'ADM', NULL, 'ExponentPushToken[yyyyyyyyyyyyyyyyyyyyyy]', '2023-03-05 09:00:00', NULL, NULL),
+('João Oliveira', 'joao@email.com', '$2b$10$43vsX/eaHAZRBjcQb6lNI.z3pcQ4qcZPTV3iGt7dto9ujPVxGCCq6', '71966554433', 'Funcionario', NULL, NULL, '2023-04-10 11:45:00', NULL, NULL);
 
 -- 3 - GERENCIAMENTO
 INSERT INTO gerenciamento (cond_id, ger_data, ger_descricao, ger_valor) VALUES

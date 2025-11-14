@@ -15,6 +15,12 @@ const { verificarToken, isSindico, isSindicoOrFuncionario } = require('../middle
 router.post('/usuario/login', usuarioController.loginusuario);
 
 // ============================================================
+// 🔑 RECUPERAÇÃO DE SENHA (público - não requer token)
+// ============================================================
+router.post('/usuario/recuperar-senha', usuarioController.solicitarReset);
+router.post('/usuario/redefinir-senha', usuarioController.resetarSenha);
+
+// ============================================================
 // 👤 PERFIL DO USUÁRIO (qualquer logado)
 // ============================================================
 router.get('/usuario/perfil/:id', verificarToken, usuarioController.buscarperfilcompleto);

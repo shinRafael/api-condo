@@ -7,12 +7,19 @@ const router = require("./src/routes/routes");
 
 const app = express();
 
-// Configuração CORS para permitir requisições do frontend
+// Configuração CORS para permitir requisições de múltiplas origens
 const corsOptions = {
-  origin: 'http://localhost:3000',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  origin: [
+    'http://localhost:3000',        // Painel Web
+    'http://localhost:8081',        // Expo Web (React Native)
+    'http://192.168.0.174:8081',    // Expo Web na rede local
+    'http://192.168.0.174:19006',   // Expo Dev Server alternativo
+    'exp://192.168.0.174:8081',     // Expo Go
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Dev-User'],
-  credentials: true
+  credentials: true,
+  optionsSuccessStatus: 200
 };
 
 app.use(cors(corsOptions));

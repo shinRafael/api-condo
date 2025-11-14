@@ -54,7 +54,9 @@ CREATE TABLE usuarios (
     user_tipo ENUM('ADM', 'Sindico', 'Funcionario', 'Morador') NOT NULL,
     user_foto VARCHAR(255) NULL DEFAULT NULL, -- ✅ ADICIONADO: URL/Caminho para foto de perfil
     user_push_token VARCHAR(255) NULL UNIQUE,
-    user_data_cadastro DATETIME DEFAULT CURRENT_TIMESTAMP
+    user_data_cadastro DATETIME DEFAULT CURRENT_TIMESTAMP,
+    user_reset_token VARCHAR(10) NULL, -- ✅ ADICIONADO: Token para recuperação de senha
+    user_reset_expires DATETIME NULL -- ✅ ADICIONADO: Data de expiração do token
 ) ENGINE=InnoDB;
 
 -- 3 - GERENCIAMENTO (Depende de 'condominio')

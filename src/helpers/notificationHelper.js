@@ -32,7 +32,8 @@ async function notificarNovaEncomenda(userap_id, nomeLoja, codigoRastreio) {
   const titulo = '📦 Encomenda Recebida';
   const mensagem = `Sua encomenda da ${nomeLoja}${codigoRastreio ? ` (${codigoRastreio})` : ''} chegou na portaria.`;
   
-  return await criarNotificacao(userap_id, titulo, mensagem, 'Entrega', 'Media');
+  // Encomendas são rotineiras -> prioridade baixa
+  return await criarNotificacao(userap_id, titulo, mensagem, 'Entrega', 'Baixa');
 }
 
 /**
@@ -52,7 +53,8 @@ async function notificarReservaConfirmada(userap_id, nomeAmbiente, data, horario
   const titulo = '✅ Reserva Confirmada';
   const mensagem = `Sua reserva do ${nomeAmbiente} para ${data} às ${horario} foi confirmada!`;
   
-  return await criarNotificacao(userap_id, titulo, mensagem, 'Aviso', 'Media');
+  // Reservas confirmadas são informativas -> prioridade baixa
+  return await criarNotificacao(userap_id, titulo, mensagem, 'Aviso', 'Baixa');
 }
 
 /**
@@ -92,7 +94,8 @@ async function notificarNovaOcorrencia(userap_id, protocolo, categoria) {
   const titulo = '📝 Ocorrência Registrada';
   const mensagem = `Sua ocorrência ${protocolo} sobre "${categoria}" foi registrada. Acompanhe o status pelo app.`;
   
-  return await criarNotificacao(userap_id, titulo, mensagem, 'Aviso', 'Media');
+  // Registro de ocorrência inicial: rotina -> prioridade baixa
+  return await criarNotificacao(userap_id, titulo, mensagem, 'Aviso', 'Baixa');
 }
 
 /**
@@ -116,7 +119,8 @@ async function notificarOcorrenciaAtualizada(userap_id, protocolo, novoStatus) {
       mensagem = `Status da sua ocorrência ${protocolo} foi alterado para: ${novoStatus}`;
   }
   
-  const prioridade = novoStatus === 'Resolvida' ? 'Alta' : 'Media';
+  // Somente alterações críticas ganham prioridade Alta
+  const prioridade = (novoStatus === 'Resolvida' || novoStatus === 'Cancelada') ? 'Alta' : 'Baixa';
   return await criarNotificacao(userap_id, titulo, mensagem, 'Aviso', prioridade);
 }
 
@@ -127,7 +131,8 @@ async function notificarMensagemOcorrencia(userap_id, protocolo) {
   const titulo = '💬 Nova Mensagem';
   const mensagem = `Você recebeu uma nova mensagem na ocorrência ${protocolo}.`;
   
-  return await criarNotificacao(userap_id, titulo, mensagem, 'Mensagem', 'Media');
+  // Mensagens em ocorrência são conversas rotineiras -> prioridade baixa
+  return await criarNotificacao(userap_id, titulo, mensagem, 'Mensagem', 'Baixa');
 }
 
 module.exports = {

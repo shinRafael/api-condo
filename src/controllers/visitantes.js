@@ -30,6 +30,13 @@ module.exports = {
   // =============================================================
   async listarvisitantes(request, response) {
     try {
+      // Garantir que o usuário autenticado seja identificado
+      const userId = request.user && (request.user.userId || request.user.user_id);
+      if (!userId) {
+        return response.status(401).json({ sucesso: false, mensagem: 'Usuário não autenticado.' });
+      }
+
+      // Retornar apenas visitantes vinculados ao(s) usuário_apartamentos do morador autenticado
       const sql = `
         SELECT 
           v.vst_id AS id,
@@ -45,10 +52,11 @@ module.exports = {
         JOIN usuario_apartamentos ua ON v.userap_id = ua.userap_id
         JOIN usuarios u ON ua.user_id = u.user_id
         JOIN apartamentos a ON ua.ap_id = a.ap_id
+        WHERE ua.user_id = ?
         ORDER BY v.vst_validade_inicio DESC;
       `;
-      
-      const [rows] = await db.query(sql);
+
+      const [rows] = await db.query(sql, [userId]);
 
       return response.status(200).json({
         sucesso: true,

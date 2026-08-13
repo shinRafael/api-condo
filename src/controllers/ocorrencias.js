@@ -285,6 +285,19 @@ module.exports = {
   async listarMensagensDaOcorrencia(request, response) {
     try {
       const { id } = request.params;
+
+      // 🔒 Anti-IDOR: só o morador dono da ocorrência (ou equipe) lê o chat
+      const [oco] = await db.query('SELECT userap_id FROM ocorrencias WHERE oco_id = ?', [id]);
+      if (oco.length === 0) {
+        return response.status(404).json({ sucesso: false, mensagem: 'Ocorrência não encontrada.' });
+      }
+      if (!verificarPosseUserAp(request.user, oco[0].userap_id)) {
+        return response.status(403).json({
+          sucesso: false,
+          mensagem: 'Acesso negado. Você só pode acessar o chat das suas ocorrências.',
+        });
+      }
+
       const sql = `
         SELECT
           om.ocomsg_id, om.oco_id, om.user_id, om.ocomsg_mensagem,
@@ -350,6 +363,14 @@ module.exports = {
         });
       }
 
+      // 🔒 Anti-IDOR: só o morador dono (ou equipe) pode comentar
+      if (!verificarPosseUserAp(request.user, ocorrencia[0].userap_id)) {
+        return response.status(403).json({
+          sucesso: false,
+          mensagem: 'Acesso negado. Você só pode comentar nas suas ocorrências.',
+        });
+      }
+
       const sqlInsert = `
         INSERT INTO ocorrencia_mensagens (oco_id, user_id, ocomsg_mensagem, ocomsg_data_envio)
         VALUES (?, ?, ?, NOW());
@@ -382,7 +403,6 @@ module.exports = {
       return response.status(500).json({
         sucesso: false,
         mensagem: 'Erro ao enviar mensagem.',
-        dados: error.message,
       });
     }
   },
@@ -393,6 +413,19 @@ module.exports = {
   async marcarMensagensOcorrenciaComoLidas(request, response) {
     try {
       const { id } = request.params;
+
+      // 🔒 Anti-IDOR: só o morador dono (ou equipe) marca as próprias mensagens
+      const [oco] = await db.query('SELECT userap_id FROM ocorrencias WHERE oco_id = ?', [id]);
+      if (oco.length === 0) {
+        return response.status(404).json({ sucesso: false, mensagem: 'Ocorrência não encontrada.' });
+      }
+      if (!verificarPosseUserAp(request.user, oco[0].userap_id)) {
+        return response.status(403).json({
+          sucesso: false,
+          mensagem: 'Acesso negado. Você só pode marcar mensagens das suas ocorrências.',
+        });
+      }
+
       const [result] = await db.query(
         'UPDATE ocorrencia_mensagens SET ocomsg_lida = 1 WHERE oco_id = ?;',
         [id]
@@ -408,7 +441,6 @@ module.exports = {
       return response.status(500).json({
         sucesso: false,
         mensagem: 'Erro ao marcar mensagens como lidas.',
-        dados: error.message,
       });
     }
   },

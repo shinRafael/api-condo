@@ -263,7 +263,6 @@ module.exports = {
       return response.status(500).json({
         sucesso: false,
         mensagem: 'Erro ao marcar encomenda como entregue.',
-        dados: error.message,
       });
     }
   },

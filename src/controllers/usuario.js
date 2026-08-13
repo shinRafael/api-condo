@@ -228,7 +228,6 @@ module.exports = {
       return response.status(500).json({
         sucesso: false,
         mensagem: 'Erro interno ao cadastrar usuário.',
-        dados: error.message,
       });
     }
   },
@@ -247,16 +246,19 @@ module.exports = {
       const { user_nome, user_email, user_telefone, user_senha, user_tipo, user_foto } =
         request.body;
 
-      // Validação: morador só pode editar próprio perfil
-      if (
-        request.user.userType === 'Morador' &&
-        Number(request.user.userId) !== Number(id)
-      ) {
-        return response.status(403).json({
-          sucesso: false,
-          mensagem: 'Acesso negado. Você só pode editar seu próprio perfil.',
-        });
-      }
+      // 🔒 Validação de posse: apenas Síndico/ADM podem editar OUTRO usuário.
+            // (Morador E Funcionário só editam o próprio perfil — evita ATO por
+            // porteiro alterando senha de qualquer morador.)
+            const ehEquipeAmpla = ['Sindico', 'ADM'].includes(request.user?.userType);
+            if (
+              !ehEquipeAmpla &&
+              Number(request.user?.userId) !== Number(id)
+            ) {
+              return response.status(403).json({
+                sucesso: false,
+                mensagem: 'Acesso negado. Você só pode editar seu próprio perfil.',
+              });
+            }
 
       // ⚠️ Se for apenas upload de foto (sem outros campos obrigatórios)
       if (request.file && !user_email) {
@@ -935,11 +937,12 @@ module.exports = {
         });
       }
 
-      const token = request.body?.token || request.body?.user_push_token;
+      // Aceita token | user_push_token | device_token (contrato do app mobile)
+      const token = request.body?.token || request.body?.user_push_token || request.body?.device_token;
       if (!token || typeof token !== 'string' || !token.trim()) {
         return response.status(400).json({
           sucesso: false,
-          mensagem: 'O campo token (ou user_push_token) é obrigatório.',
+          mensagem: 'O campo token (ou user_push_token / device_token) é obrigatório.',
         });
       }
 
@@ -961,10 +964,10 @@ module.exports = {
       });
     } catch (error) {
       console.error('❌ Erro ao registrar dispositivo:', error);
+      // ⚠️ NUNCA devolver error.message ao cliente (vaza SQL interno)
       return response.status(500).json({
         sucesso: false,
         mensagem: 'Erro interno ao registrar dispositivo.',
-        dados: error.message,
       });
     }
   },

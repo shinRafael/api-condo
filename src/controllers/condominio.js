@@ -74,7 +74,6 @@ module.exports = {
       return response.status(500).json({
         sucesso: false,
         mensagem: 'Erro ao buscar condomínio.',
-        dados: error.message,
       });
     }
   },

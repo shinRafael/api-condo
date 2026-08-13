@@ -12,6 +12,10 @@ const app = express();
 // 🔒 Headers de segurança (CSP, X-Frame-Options, nosniff, etc.)
 app.use(helmet());
 
+// 🔒 trust proxy: atrás do proxy da Hostinger o rate-limit precisa do IP real
+// (X-Forwarded-For). Ajustar para 0 se o backend for exposto direto.
+app.set('trust proxy', 1);
+
 // Configuração CORS para permitir requisições de múltiplas origens
 const corsOptions = {
   origin: [

@@ -161,7 +161,7 @@ module.exports = {
       }
 
       const sql = `
-        SELECT not_id, not_titulo, not_mensagem, not_data_envio, not_lida, not_prioridade
+        SELECT not_id, not_titulo, not_mensagem, not_data_envio, not_lida, not_prioridade, not_tipo
         FROM notificacoes
         WHERE userap_id = ?
         ORDER BY not_data_envio DESC;

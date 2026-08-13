@@ -416,7 +416,6 @@ module.exports = {
       return response.status(500).json({
         sucesso: false,
         mensagem: 'Erro no servidor ao detalhar visitante.',
-        dados: error.message,
       });
     }
   },
@@ -486,7 +485,6 @@ module.exports = {
       return response.status(500).json({
         sucesso: false,
         mensagem: 'Erro no servidor ao reenviar convite.',
-        dados: error.message,
       });
     }
   },

@@ -364,4 +364,30 @@ module.exports = {
       });
     }
   },
+
+  // =============================================================
+  // ✅ MARCAR MENSAGENS DA OCORRÊNCIA COMO LIDAS
+  // =============================================================
+  async marcarMensagensOcorrenciaComoLidas(request, response) {
+    try {
+      const { id } = request.params;
+      const [result] = await db.query(
+        'UPDATE ocorrencia_mensagens SET ocomsg_lida = 1 WHERE oco_id = ?;',
+        [id]
+      );
+
+      return response.status(200).json({
+        sucesso: true,
+        mensagem: `Mensagens da ocorrência ${id} marcadas como lidas.`,
+        dados: { atualizadas: result.affectedRows },
+      });
+    } catch (error) {
+      console.error('❌ Erro ao marcar mensagens como lidas:', error);
+      return response.status(500).json({
+        sucesso: false,
+        mensagem: 'Erro ao marcar mensagens como lidas.',
+        dados: error.message,
+      });
+    }
+  },
 };

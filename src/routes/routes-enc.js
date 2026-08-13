@@ -32,6 +32,7 @@ router.delete('/ocorrencias/:id', verificarToken, isSindico, ocorrenciasControll
 // 💬 MENSAGENS DAS OCORRÊNCIAS
 router.get('/ocorrencias/:id/mensagens', verificarToken, ocorrenciasController.listarMensagensDaOcorrencia);
 router.post('/ocorrencias/:id/mensagens', verificarToken, ocorrenciasController.enviarMensagemParaOcorrencia);
+router.patch('/ocorrencias/:id/mensagens/lida', verificarToken, ocorrenciasController.marcarMensagensOcorrenciaComoLidas);
 
 // ============================================================
 // 📑 DOCUMENTOS

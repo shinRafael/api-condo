@@ -39,7 +39,7 @@ router.patch('/ocorrencias/:id/mensagens/lida', verificarToken, ocorrenciasContr
 // ============================================================
 // 📑 DOCUMENTOS
 // ============================================================
-router.get('/documentos', verificarToken, isSindicoOrFuncionario, documentosController.listardocumentos);
+router.get('/documentos', verificarToken, documentosController.listardocumentos);
 router.post('/documentos', verificarToken, isSindico, documentosController.cadastrardocumentos);
 router.patch('/documentos/:id', verificarToken, isSindico, documentosController.editardocumentos);
 router.delete('/documentos/:id', verificarToken, isSindico, documentosController.apagardocumentos);

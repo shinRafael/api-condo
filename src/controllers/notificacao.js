@@ -13,6 +13,28 @@ const capitalize = (s) => {
   return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
 };
 
+// ===============================================================
+// 🧩 ENUMs do schema (src/dataBase/createbanco/createnovo.sql — tabela notificacoes)
+//   not_prioridade ENUM('Baixa', 'Media', 'Alta') DEFAULT 'Media'  → 'Media' SEM acento
+//   not_tipo       ENUM('Entrega', 'Aviso', 'Mensagem') NOT NULL   → sem default
+// ===============================================================
+const PRIORIDADES_VALIDAS = ['Baixa', 'Media', 'Alta'];
+const TIPOS_VALIDOS = ['Entrega', 'Aviso', 'Mensagem'];
+const TIPO_PADRAO = 'Aviso';
+
+// Normaliza prioridade para o ENUM do schema ('Média' com acento → 'Media')
+const normalizarPrioridade = (s) => {
+  const cap = capitalize(s);
+  if (cap === 'Média') return 'Media';
+  return PRIORIDADES_VALIDAS.includes(cap) ? cap : 'Media';
+};
+
+// Normaliza tipo para o ENUM do schema; fora da lista → default 'Aviso'
+const normalizarTipo = (s) => {
+  const cap = capitalize(s);
+  return TIPOS_VALIDOS.includes(cap) ? cap : TIPO_PADRAO;
+};
+
 module.exports = {
   // =============================================================
   // 📋 LISTAR ENVIO AGRUPADO (Painel Web)
@@ -272,7 +294,7 @@ module.exports = {
   // =============================================================
   async cadastrarnotificacao(request, response) {
     try {
-      const { not_titulo, not_mensagem, not_prioridade, alvo } = request.body;
+      const { not_titulo, not_mensagem, not_prioridade, not_tipo, alvo } = request.body;
 
       if (!not_titulo || !not_mensagem) {
         return response.status(400).json({
@@ -281,7 +303,8 @@ module.exports = {
         });
       }
 
-      const prioridade = capitalize(not_prioridade);
+      const prioridade = normalizarPrioridade(not_prioridade);
+      const tipo = normalizarTipo(not_tipo);
       let listaDeUserApIds = [];
 
       // Envio para todos os moradores
@@ -311,6 +334,28 @@ module.exports = {
           [apId]
         );
         listaDeUserApIds = rows.map((r) => r.userap_id);
+      }
+      // Envio para um usuário/unidade específica (userap-<id>)
+      else if (alvo.startsWith('userap-')) {
+        const userapId = alvo.split('-')[1];
+
+        // 🔒 Anti-IDOR: morador só pode notificar a própria unidade;
+        // equipe (Síndico/Funcionário/ADM) pode notificar qualquer unidade.
+        // (Em DEV, request.user._dev pula a checagem — nunca ativo em produção.)
+        const ehMorador = request.user?.userType === 'Morador';
+        const ehDev = Boolean(request.user && request.user._dev);
+        if (ehMorador && !ehDev && Number(request.user.userApId) !== Number(userapId)) {
+          return response.status(403).json({
+            sucesso: false,
+            mensagem: 'Acesso negado. Você só pode enviar notificações para a sua unidade.',
+          });
+        }
+
+        const [rows] = await db.query(
+          'SELECT userap_id FROM usuario_apartamentos WHERE userap_id = ?;',
+          [userapId]
+        );
+        listaDeUserApIds = rows.map((r) => r.userap_id);
       } else {
         return response.status(400).json({
           sucesso: false,
@@ -329,10 +374,10 @@ module.exports = {
       for (const userap_id of listaDeUserApIds) {
         const sqlInsert = `
           INSERT INTO notificacoes
-            (userap_id, not_titulo, not_mensagem, not_data_envio, not_lida, not_prioridade)
-          VALUES (?, ?, ?, NOW(), 0, ?);
+            (userap_id, not_titulo, not_mensagem, not_data_envio, not_lida, not_prioridade, not_tipo)
+          VALUES (?, ?, ?, NOW(), 0, ?, ?);
         `;
-        await db.query(sqlInsert, [userap_id, not_titulo, not_mensagem, prioridade]);
+        await db.query(sqlInsert, [userap_id, not_titulo, not_mensagem, prioridade, tipo]);
       }
 
       return response.status(201).json({

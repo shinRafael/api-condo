@@ -12,7 +12,7 @@ const { isOwnerOrStaff } = require('../middleware/ownership');
 router.get('/notificacoes/envios', verificarToken, isSindicoOrFuncionario, notificacaoController.listarEnviosAgrupados);
 router.patch('/notificacoes/envio', verificarToken, isSindicoOrFuncionario, notificacaoController.editarEnvioAgrupado);
 router.delete('/notificacoes/envio', verificarToken, isSindico, notificacaoController.apagarEnvioAgrupado);
-router.post('/notificacao', verificarToken, isSindicoOrFuncionario, notificacaoController.cadastrarnotificacao);
+router.post('/notificacao', verificarToken, notificacaoController.cadastrarnotificacao);
 router.patch('/notificacao/:id', verificarToken, isSindicoOrFuncionario, notificacaoController.editarnotificacao);
 router.delete('/notificacao/:id', verificarToken, isSindico, notificacaoController.apagarnotificacao);
 

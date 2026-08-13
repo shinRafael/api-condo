@@ -116,7 +116,6 @@ module.exports = {
     try {
       const { user_nome, user_email, user_telefone, user_senha, user_tipo } =
         request.body;
-
       if (!user_nome || !user_email || !user_senha || !user_tipo) {
         return response.status(400).json({
           sucesso: false,
@@ -160,6 +159,72 @@ module.exports = {
       });
     } catch (error) {
       console.error('❌ Erro ao cadastrar usuário:', error);
+      return response.status(500).json({
+        sucesso: false,
+        mensagem: 'Erro interno ao cadastrar usuário.',
+        dados: error.message,
+      });
+    }
+  },
+
+  // =============================================================
+  // 📱 CADASTRO PÚBLICO DE MORADOR (app mobile — POST /usuario/cadastro)
+  // Força user_tipo='Morador' — ninguém se auto-cadastra como Síndico/ADM.
+  // =============================================================
+  async cadastrarusuarioPublico(request, response) {
+    try {
+      const { user_nome, user_email, user_telefone, user_senha } = request.body;
+
+      if (!user_nome || !user_email || !user_senha) {
+        return response.status(400).json({
+          sucesso: false,
+          mensagem: 'Preencha todos os campos obrigatórios.',
+        });
+      }
+
+      if (String(user_senha).length < 6) {
+        return response.status(400).json({
+          sucesso: false,
+          mensagem: 'A senha deve ter pelo menos 6 caracteres.',
+        });
+      }
+
+      const [existente] = await db.query(
+        'SELECT * FROM usuarios WHERE user_email = ?',
+        [user_email]
+      );
+      if (existente.length > 0) {
+        return response.status(400).json({
+          sucesso: false,
+          mensagem: 'E-mail já cadastrado.',
+        });
+      }
+
+      const salt = await bcrypt.genSalt(10);
+      const senhaHash = await bcrypt.hash(user_senha, salt);
+      const telefone =
+        user_telefone && user_telefone.trim() !== '' ? user_telefone : null;
+
+      // 🔒 user_tipo é SEMPRE 'Morador' no cadastro público
+      const sql = `
+        INSERT INTO usuarios (user_nome, user_email, user_telefone, user_senha, user_tipo)
+        VALUES (?, ?, ?, ?, 'Morador')
+      `;
+      const values = [user_nome, user_email, telefone, senhaHash];
+      const [result] = await db.query(sql, values);
+
+      return response.status(201).json({
+        sucesso: true,
+        mensagem: 'Cadastro realizado com sucesso!',
+        dados: {
+          id: result.insertId,
+          user_nome,
+          user_email,
+          user_tipo: 'Morador',
+        },
+      });
+    } catch (error) {
+      console.error('❌ Erro ao cadastrar usuário público:', error);
       return response.status(500).json({
         sucesso: false,
         mensagem: 'Erro interno ao cadastrar usuário.',

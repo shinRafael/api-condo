@@ -189,9 +189,12 @@ module.exports = {
         });
       }
 
+      // 🔒 Normaliza e-mail para lowercase — evita duplicata case-sensitive
+      const emailNormalizado = String(user_email).trim().toLowerCase();
+
       const [existente] = await db.query(
         'SELECT * FROM usuarios WHERE user_email = ?',
-        [user_email]
+        [emailNormalizado]
       );
       if (existente.length > 0) {
         return response.status(400).json({
@@ -210,7 +213,7 @@ module.exports = {
         INSERT INTO usuarios (user_nome, user_email, user_telefone, user_senha, user_tipo)
         VALUES (?, ?, ?, ?, 'Morador')
       `;
-      const values = [user_nome, user_email, telefone, senhaHash];
+      const values = [user_nome, emailNormalizado, telefone, senhaHash];
       const [result] = await db.query(sql, values);
 
       return response.status(201).json({
@@ -219,7 +222,7 @@ module.exports = {
         dados: {
           id: result.insertId,
           user_nome,
-          user_email,
+          user_email: emailNormalizado,
           user_tipo: 'Morador',
         },
       });

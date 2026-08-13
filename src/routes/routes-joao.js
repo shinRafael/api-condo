@@ -34,6 +34,12 @@ router.get('/visitantes', verificarToken, isMorador, visitantesController.listar
 // Morador cadastra autorização de visitante
 router.post('/visitantes', verificarToken, isMorador, visitantesController.cadastravisitante);
 
+// Detalhe de um visitante (morador vê os próprios; equipe vê todos — posse validada no controller)
+router.get('/visitantes/:id', verificarToken, visitantesController.detalharvisitante);
+
+// Reenviar convite de visitante
+router.post('/visitantes/:id/reenviar', verificarToken, visitantesController.reenviarconvite);
+
 // Morador cancela uma autorização antes da entrada
 router.patch('/visitantes/:id/cancelar', verificarToken, isMorador, visitantesController.cancelarautorizacao);
 

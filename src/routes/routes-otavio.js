@@ -2,7 +2,9 @@ const express = require('express');
 const router = express.Router();
 
 const notificacaoController = require('../controllers/notificacao');
+const usuarioController = require('../controllers/usuario');
 const { verificarToken, isSindico, isSindicoOrFuncionario, isMorador } = require('../middleware/auth');
+const { isOwnerOrStaff } = require('../middleware/ownership');
 
 // ============================================================
 // ROTAS PARA O PAINEL WEB (GESTÃO)
@@ -18,7 +20,12 @@ router.delete('/notificacao/:id', verificarToken, isSindico, notificacaoControll
 // ROTAS PARA O APP (MORADOR)
 // ============================================================
 router.get('/notificacoes/importantes', verificarToken, isMorador, notificacaoController.listarAvisosImportantes);
-router.get('/notificacao/:userap_id', verificarToken, isMorador, notificacaoController.listarnotificacao);
+router.get('/notificacao/:userap_id', verificarToken, isOwnerOrStaff, notificacaoController.listarnotificacao);
+
+// ============================================================
+// 📱 DISPOSITIVOS (push token do app mobile)
+// ============================================================
+router.post('/devices/register', verificarToken, usuarioController.registrarDispositivo);
 
 // 🔄 AGORA PERMITE SÍNDICO E MORADOR MARCAREM COMO LIDA
 router.patch(

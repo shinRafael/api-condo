@@ -5,11 +5,6 @@ const reservas_ambientesController = require('../controllers/reservas_ambientes'
 const { verificarToken, isSindico, isSindicoOrFuncionario, isMorador } = require('../middleware/auth');
 
 // ============================================================
-// 🏢 AMBIENTES
-// ============================================================
-router.get('/ambientes', verificarToken, reservas_ambientesController.listarAmbientes);
-
-// ============================================================
 // 📅 RESERVAS DE AMBIENTES (Padrão REST)
 // ============================================================
 

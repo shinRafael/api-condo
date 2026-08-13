@@ -192,7 +192,7 @@ CREATE TABLE mensagens (
     msg_id INT AUTO_INCREMENT PRIMARY KEY,
     cond_id INT NOT NULL,
     userap_id INT NOT NULL,
-    msg_mensagem VARCHAR(130) NOT NULL,
+    msg_mensagem TEXT NOT NULL, -- ✅ ALTERADO: VARCHAR(130) -> TEXT (mensagens longas)
     msg_data_envio DATETIME,
     msg_status ENUM('Enviada', 'Lida', 'Pendente') DEFAULT 'Enviada',
     oco_id INT NULL,

@@ -1,12 +1,21 @@
 // auth.js
 const jwt = require('jsonwebtoken');
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_trocar_em_prod';
+
+// 🔒 Fail fast: JWT_SECRET é OBRIGATÓRIO. Sem fallback hardcoded.
+// (Se não estiver no .env, o servidor NÃO sobe — evita tokens forjáveis.)
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET || JWT_SECRET.length < 16) {
+  console.error('❌ [AUTH] JWT_SECRET ausente ou muito curto no .env. Defina JWT_SECRET com pelo menos 16 caracteres.');
+  process.exit(1);
+}
 
 // Helper: detectar modo dev com tolerância a strings
+// ⚠️ NUNCA ativa em produção: exige NODE_ENV !== 'production' E DEV_MODE=true explícito.
 const isDevMode = () => {
   const env = (process.env.NODE_ENV || '').toString().trim().toLowerCase();
+  if (env === 'production') return false;
   const devFlag = (process.env.DEV_MODE || '').toString().trim().toLowerCase();
-  return env === 'development' || devFlag === 'true';
+  return devFlag === 'true';
 };
 
 // Helper: tentar parse seguro de JSON
@@ -44,17 +53,11 @@ if (isDevMode()) console.log("✅ MODO DEV DETECTADO");
       }
     }
 
-    // 2) Se query ?role=Funcionario estiver presente, usa isso (útil pra testar direto via URL)
-    const roleQuery = (request.query && request.query.role) || null;
-    if (roleQuery) {
-      request.user = { userId: 1, userType: roleQuery, _dev: true };
-      console.log('\x1b[33m%s\x1b[0m', `🧩 [AUTH DEV] Usuário simulado via query: ${request.user.userType}`);
-      return next();
-    }
-
-    // 3) Fallback: usuário padrão em DEV — SÍNDICO (acesso total)
-    request.user = { userId: 1, userType: 'Sindico', _dev: true };
-    console.log('\x1b[33m%s\x1b[0m', '🧩 [AUTH DEV] Modo DEV ativo — usuário padrão: Sindico (acesso total)');
+    // 2) Fallback: usuário padrão em DEV — MORADOR (acesso mínimo)
+    //    (removido: ?role= na query e bypass automático como Síndico — vetores de
+    //    fingimento de usuário. Para testar como síndico, enviar X-Dev-User.)
+    request.user = { userId: 1, userType: 'Morador', _dev: true };
+    console.log('\x1b[33m%s\x1b[0m', '🧩 [AUTH DEV] Modo DEV ativo — usuário padrão: Morador (acesso mínimo). Para outro tipo, use header X-Dev-User.');
     return next();
   }
 

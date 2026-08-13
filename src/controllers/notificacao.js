@@ -3,6 +3,7 @@
 // ===============================================================
 
 const db = require('../dataBase/connection');
+const { verificarPosseUserAp, isStaff } = require('../middleware/ownership');
 
 // ===============================================================
 // 🧩 Função auxiliar: corrige o formato da prioridade ENUM
@@ -149,6 +150,16 @@ module.exports = {
   async listarnotificacao(request, response) {
     try {
       const { userap_id } = request.params;
+
+      // 🔒 Anti-IDOR: morador só vê as notificações da própria unidade
+      // (equipe — Síndico/Funcionário/ADM — tem acesso amplo)
+      if (!verificarPosseUserAp(request.user, userap_id)) {
+        return response.status(403).json({
+          sucesso: false,
+          mensagem: 'Acesso negado. Você só pode ver as notificações da sua unidade.',
+        });
+      }
+
       const sql = `
         SELECT not_id, not_titulo, not_mensagem, not_data_envio, not_lida, not_prioridade
         FROM notificacoes
@@ -206,6 +217,33 @@ module.exports = {
   async marcarComoLida(request, response) {
     try {
       const { not_id } = request.params;
+
+      // Buscar a notificação para validar posse
+      const [notificacao] = await db.query(
+        'SELECT userap_id FROM notificacoes WHERE not_id = ?',
+        [not_id]
+      );
+
+      if (notificacao.length === 0) {
+        return response.status(404).json({
+          sucesso: false,
+          mensagem: `Notificação ${not_id} não encontrada.`,
+        });
+      }
+
+      // 🔒 Anti-IDOR: morador só marca como lida as próprias notificações;
+      // equipe (Síndico/Funcionário/ADM) pode marcar qualquer uma.
+      // (Em DEV, request.user._dev pula a checagem — nunca ativo em produção.)
+      if (!isStaff(request.user) && !(request.user && request.user._dev)) {
+        const user = request.user || {};
+        if (!user.userApId || Number(notificacao[0].userap_id) !== Number(user.userApId)) {
+          return response.status(403).json({
+            sucesso: false,
+            mensagem: 'Acesso negado. Esta notificação não pertence à sua unidade.',
+          });
+        }
+      }
+
       const sql = `UPDATE notificacoes SET not_lida = 1 WHERE not_id = ?;`;
       const [result] = await db.query(sql, [not_id]);
 

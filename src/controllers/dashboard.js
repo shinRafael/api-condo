@@ -3,6 +3,7 @@
 // ===============================================================
 
 const db = require('../dataBase/connection');
+const { verificarPosseUserAp } = require('../middleware/ownership');
 
 // ===============================================================
 // 🔹 Função auxiliar para identificar o tipo de evento
@@ -36,6 +37,15 @@ module.exports = {
         return response.status(400).json({
           sucesso: false,
           mensagem: 'O ID do usuário (userap_id) é obrigatório.'
+        });
+      }
+
+      // 🔒 Anti-IDOR: morador só acessa o dashboard da própria unidade
+      // (equipe — Síndico/Funcionário/ADM — tem acesso amplo)
+      if (!verificarPosseUserAp(request.user, userap_id)) {
+        return response.status(403).json({
+          sucesso: false,
+          mensagem: 'Acesso negado. Você só pode acessar o dashboard da sua unidade.',
         });
       }
 

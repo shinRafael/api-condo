@@ -6,7 +6,8 @@ const express = require('express');
 const router = express.Router();
 
 const dashboardController = require('../controllers/dashboard');
-const { verificarToken, isMorador } = require('../middleware/auth');
+const { verificarToken } = require('../middleware/auth');
+const { isOwnerOrStaff } = require('../middleware/ownership');
 
 // ============================================================
 // 📱 ROTA: Atualizações do Dashboard do Morador (Mobile)
@@ -14,7 +15,7 @@ const { verificarToken, isMorador } = require('../middleware/auth');
 router.get(
   '/dashboard/updates/:userap_id',
   verificarToken,
-  isMorador,
+  isOwnerOrStaff,
   dashboardController.getLatestUpdates
 );
 

@@ -7,6 +7,22 @@ const { randomUUID } = require('crypto');
 const { Expo } = require('expo-server-sdk');
 const expo = new Expo();
 const { notificarVisitanteAutorizado, notificarVisitanteChegou } = require('../helpers/notificationHelper');
+const { isStaff } = require('../middleware/ownership');
+
+// ===============================================================
+// 🔧 Função auxiliar — valida posse de um visitante pelo morador
+// (equipe — Síndico/Funcionário/ADM — tem acesso amplo)
+// ===============================================================
+async function verificarPosseVisitante(user, userap_id) {
+  if (isStaff(user)) return true;
+  const userId = user && (user.userId || user.user_id);
+  if (!userId) return false;
+  const [vinculos] = await db.query(
+    'SELECT userap_id FROM usuario_apartamentos WHERE user_id = ?',
+    [userId]
+  );
+  return vinculos.some((r) => Number(r.userap_id) === Number(userap_id));
+}
 
 // ===============================================================
 // 🔧 Função auxiliar — formata telefones no padrão brasileiro
@@ -126,9 +142,16 @@ module.exports = {
   // =============================================================
   async cadastravisitante(request, response) {
     try {
-      const { userap_id, vst_nome, vst_celular, vst_documento, vst_validade_inicio, vst_validade_fim } = request.body;
+      const { vst_nome, vst_celular, vst_documento, vst_validade_inicio, vst_validade_fim } = request.body;
 
-      if (!userap_id || !vst_nome || !vst_validade_inicio || !vst_validade_fim) {
+      // 🔒 Anti-IDOR/escalada: userap_id vem do JWT — nunca do body.
+      // Ignora qualquer userap_id enviado pelo cliente.
+      const userap_id = request.user?.userApId;
+      if (!userap_id) {
+        return response.status(403).json({ sucesso: false, mensagem: "Acesso negado. Token sem vínculo de unidade (userApId)." });
+      }
+
+      if (!vst_nome || !vst_validade_inicio || !vst_validade_fim) {
         return response.status(400).json({ sucesso: false, mensagem: "Campos obrigatórios não foram preenchidos." });
       }
 
@@ -343,11 +366,157 @@ module.exports = {
   },
 
   // =============================================================
+  // 🔍 6.5. DETALHAR VISITANTE (app mobile)
+  // =============================================================
+  async detalharvisitante(request, response) {
+    try {
+      const { id } = request.params;
+
+      const sql = `
+        SELECT 
+          v.vst_id AS id,
+          v.userap_id,
+          v.vst_nome AS nome,
+          v.vst_celular AS celular,
+          v.vst_documento AS documento,
+          v.vst_status AS status,
+          v.vst_validade_inicio AS validadeInicio,
+          v.vst_validade_fim AS validadeFim,
+          v.vst_qrcode_hash AS qrcode,
+          a.ap_numero AS unidade,
+          u.user_nome AS morador
+        FROM visitantes v
+        JOIN usuario_apartamentos ua ON v.userap_id = ua.userap_id
+        JOIN usuarios u ON ua.user_id = u.user_id
+        JOIN apartamentos a ON ua.ap_id = a.ap_id
+        WHERE v.vst_id = ?;
+      `;
+      const [rows] = await db.query(sql, [id]);
+
+      if (rows.length === 0) {
+        return response.status(404).json({ sucesso: false, mensagem: `Visitante ${id} não encontrado.` });
+      }
+
+      // 🔒 Anti-IDOR: morador só vê os próprios visitantes; equipe vê todos
+      const posseOk = await verificarPosseVisitante(request.user, rows[0].userap_id);
+      if (!posseOk) {
+        return response.status(403).json({
+          sucesso: false,
+          mensagem: 'Acesso negado. Você só pode consultar os próprios visitantes.',
+        });
+      }
+
+      return response.status(200).json({
+        sucesso: true,
+        mensagem: 'Visitante encontrado.',
+        dados: rows[0],
+      });
+    } catch (error) {
+      console.error('❌ Erro ao detalhar visitante:', error);
+      return response.status(500).json({
+        sucesso: false,
+        mensagem: 'Erro no servidor ao detalhar visitante.',
+        dados: error.message,
+      });
+    }
+  },
+
+  // =============================================================
+  // 📲 6.6. REENVIAR CONVITE DE VISITANTE (app mobile)
+  // =============================================================
+  async reenviarconvite(request, response) {
+    try {
+      const { id } = request.params;
+
+      // Buscar o visitante
+      const [visitante] = await db.query(
+        'SELECT userap_id, vst_nome, vst_status FROM visitantes WHERE vst_id = ?',
+        [id]
+      );
+
+      if (visitante.length === 0) {
+        return response.status(404).json({ sucesso: false, mensagem: `Visitante ${id} não encontrado.` });
+      }
+
+      // 🔒 Anti-IDOR: morador só reenvia convite dos próprios visitantes
+      const posseOk = await verificarPosseVisitante(request.user, visitante[0].userap_id);
+      if (!posseOk) {
+        return response.status(403).json({
+          sucesso: false,
+          mensagem: 'Acesso negado. Você só pode reenviar convites dos próprios visitantes.',
+        });
+      }
+
+      // Buscar push token do morador vinculado
+      const [rows] = await db.query(
+        `SELECT u.user_push_token
+         FROM usuario_apartamentos ua
+         JOIN usuarios u ON ua.user_id = u.user_id
+         WHERE ua.userap_id = ?;`,
+        [visitante[0].userap_id]
+      );
+
+      const pushToken = rows[0]?.user_push_token;
+      if (pushToken && Expo.isExpoPushToken(pushToken)) {
+        const message = {
+          to: pushToken,
+          sound: 'default',
+          title: 'Convite de Visitante',
+          body: `A autorização para ${visitante[0].vst_nome} está ativa (${visitante[0].vst_status}).`,
+          data: { vst_id: id },
+        };
+        await expo.sendPushNotificationsAsync([message]);
+      }
+
+      // Registrar notificação no app (independente do push token)
+      await db.query(
+        `INSERT INTO notificacoes (userap_id, not_titulo, not_mensagem, not_data_envio, not_tipo, not_prioridade)
+         VALUES (?, 'Convite Reenviado', ?, NOW(), 'Aviso', 'Media');`,
+        [visitante[0].userap_id, `O convite de ${visitante[0].vst_nome} foi reenviado com sucesso.`]
+      );
+
+      // Sem canal de email/SMS disponível — responde sucesso com mensagem
+      return response.status(200).json({
+        sucesso: true,
+        mensagem: 'Convite reenviado com sucesso.',
+        dados: { vst_id: Number(id), status: visitante[0].vst_status },
+      });
+    } catch (error) {
+      console.error('❌ Erro ao reenviar convite:', error);
+      return response.status(500).json({
+        sucesso: false,
+        mensagem: 'Erro no servidor ao reenviar convite.',
+        dados: error.message,
+      });
+    }
+  },
+
+  // =============================================================
   // ❌ 7. CANCELAR AUTORIZAÇÃO (morador)
   // =============================================================
   async cancelarautorizacao(request, response) {
     try {
       const { id } = request.params;
+
+      // Buscar o visitante para validar posse
+      const [visitante] = await db.query(
+        'SELECT userap_id FROM visitantes WHERE vst_id = ?',
+        [id]
+      );
+
+      if (visitante.length === 0) {
+        return response.status(404).json({ sucesso: false, mensagem: `Autorização ${id} não encontrada.` });
+      }
+
+      // 🔒 Anti-IDOR: morador só cancela as próprias autorizações;
+      // equipe (síndico/funcionário) pode cancelar todas.
+      const posseOk = await verificarPosseVisitante(request.user, visitante[0].userap_id);
+      if (!posseOk) {
+        return response.status(403).json({
+          sucesso: false,
+          mensagem: 'Acesso negado. Você só pode cancelar as próprias autorizações.',
+        });
+      }
 
       const sql = `
         UPDATE visitantes
@@ -366,6 +535,7 @@ module.exports = {
         dados: { id, status: 'Cancelado' }
       });
     } catch (error) {
+      console.error('❌ Erro no servidor ao cancelar autorização:', error);
       return response.status(500).json({
         sucesso: false,
         mensagem: "Erro no servidor ao cancelar autorização.",

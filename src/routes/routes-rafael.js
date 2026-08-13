@@ -9,6 +9,8 @@ const { verificarToken, isSindico, isSindicoOrFuncionario } = require('../middle
 // CONDOMÍNIO
 // ============================================================
 router.get('/condominio', verificarToken, isSindicoOrFuncionario, condominioController.listarcondominio);
+// Objeto único de condomínio (app mobile) — qualquer usuário autenticado
+router.get('/condominio/:id', verificarToken, condominioController.buscarcondominio);
 router.post('/condominio', verificarToken, isSindico, condominioController.cadastrarcondominio);
 router.patch('/condominio/:id', verificarToken, isSindico, condominioController.editarcondominio);
 router.delete('/condominio/:id', verificarToken, isSindico, condominioController.apagarcondominio);

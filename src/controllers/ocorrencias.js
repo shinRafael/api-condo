@@ -4,6 +4,7 @@
 
 const db = require('../dataBase/connection');
 const { notificarNovaOcorrencia, notificarOcorrenciaAtualizada, notificarMensagemOcorrencia } = require('../helpers/notificationHelper');
+const { verificarPosseUserAp } = require('../middleware/ownership');
 
 module.exports = {
   // =============================================================
@@ -65,6 +66,16 @@ module.exports = {
   async listarOcorrenciasDoMorador(request, response) {
     try {
       const { userap_id } = request.params;
+
+      // 🔒 Anti-IDOR: morador só acessa as ocorrências da própria unidade
+      // (equipe — Síndico/Funcionário/ADM — tem acesso amplo)
+      if (!verificarPosseUserAp(request.user, userap_id)) {
+        return response.status(403).json({
+          sucesso: false,
+          mensagem: 'Acesso negado. Você só pode listar as ocorrências da sua unidade.',
+        });
+      }
+
       const sql = `
         SELECT
           oco_id, userap_id, oco_protocolo, oco_categoria, oco_descricao,
@@ -96,15 +107,26 @@ module.exports = {
   // =============================================================
   async cadastrarocorrencias(request, response) {
     try {
-      const { userap_id, oco_categoria, oco_descricao, oco_localizacao, oco_prioridade, oco_imagem } = request.body;
+      const { oco_categoria, oco_descricao, oco_localizacao, oco_prioridade, oco_imagem } = request.body;
+
+      // 🔒 Anti-IDOR/escalada: userap_id vem do JWT — nunca do body.
+      // Ignora qualquer userap_id enviado pelo cliente.
+      const userap_id = request.user?.userApId;
+      if (!userap_id) {
+        return response.status(403).json({
+          sucesso: false,
+          mensagem: 'Acesso negado. Token sem vínculo de unidade (userApId).',
+        });
+      }
 
       const anoAtual = new Date().getFullYear();
+      // 🔧 Protocolo único mesmo após DELETE: MAX(oco_id)+1 é monotônico
+      // (id nunca é reutilizado), evitando colisão de protocolo.
       const [resultadoBusca] = await db.query(
-        `SELECT COUNT(*) AS total_no_ano FROM ocorrencias WHERE YEAR(oco_data) = ?;`,
-        [anoAtual]
+        'SELECT COALESCE(MAX(oco_id), 0) + 1 AS proximoNumero FROM ocorrencias;'
       );
 
-      const proximoNumero = resultadoBusca[0].total_no_ano + 1;
+      const proximoNumero = resultadoBusca[0].proximoNumero;
       const protocoloFormatado = `OCO-${anoAtual}-${proximoNumero.toString().padStart(4, '0')}`;
       const prioridadePadrao = oco_prioridade || 'Média';
 

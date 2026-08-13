@@ -10,7 +10,11 @@ const fs = require('fs');
 const { uploadPerfil } = require('./upload');
 const transporter = require('../lib/mailer');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_trocar_em_prod';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET || JWT_SECRET.length < 16) {
+  console.error('❌ [USUARIO] JWT_SECRET ausente ou muito curto no .env.');
+  process.exit(1);
+}
 
 module.exports = {
   // =============================================================
@@ -170,7 +174,7 @@ module.exports = {
   async editarusuario(request, response) {
     try {
       // 🔍 LOGS PARA DEBUG
-      console.log('📦 Body recebido:', request.body);
+      // ⚠️ NUNCA logar request.body — contém user_senha em texto puro
       console.log('📸 Arquivo recebido:', request.file);
       console.log('🔑 Headers:', request.headers['content-type']);
       
@@ -290,7 +294,16 @@ module.exports = {
 
       // Para edição de perfil (morador), manter nome e tipo originais
       const nomeAtualizar = user_nome || usuarioExiste[0].user_nome;
-      const tipoAtualizar = user_tipo || usuarioExiste[0].user_tipo;
+
+      // 🔒 Segurança (anti-escalada de privilégio): apenas Síndico/ADM podem
+      // alterar o user_tipo. Qualquer tentativa de mudança de cargo por
+      // Morador/Funcionário é IGNORADA — o tipo permanece o atual.
+      const podeAlterarTipo = ['Sindico', 'ADM'].includes(request.user?.userType);
+      const tiposValidos = ['ADM', 'Sindico', 'Funcionario', 'Morador'];
+      let tipoAtualizar = usuarioExiste[0].user_tipo;
+      if (podeAlterarTipo && user_tipo && tiposValidos.includes(user_tipo)) {
+        tipoAtualizar = user_tipo;
+      }
       
       // ✅ UPLOAD DE FOTO: Se houver nova foto, usar; senão, manter a atual
       let fotoAtualizar = usuarioExiste[0].user_foto;
@@ -399,6 +412,22 @@ module.exports = {
       });
     } catch (error) {
       console.error('❌ Erro ao apagar usuário:', error);
+
+      // 🔒 Erro amigável para violação de chave estrangeira (1451 / ER_ROW_IS_REFERENCED)
+      if (
+        error.code === 'ER_ROW_IS_REFERENCED_2' ||
+        error.code === 'ER_ROW_IS_REFERENCED' ||
+        error.errno === 1451
+      ) {
+        return response.status(409).json({
+          sucesso: false,
+          mensagem:
+            'Não é possível excluir este usuário: existem registros vinculados ' +
+            '(encomendas, ocorrências, visitantes, mensagens ou notificações). ' +
+            'Exclua ou reatribua esses registros antes de remover o usuário.',
+        });
+      }
+
       return response.status(500).json({
         sucesso: false,
         mensagem: 'Erro interno ao apagar usuário.',
@@ -822,6 +851,54 @@ module.exports = {
       return response.status(500).json({
         sucesso: false,
         mensagem: 'Erro interno ao resetar senha.',
+        dados: error.message,
+      });
+    }
+  },
+
+  // =============================================================
+  // 📱 REGISTRAR DISPOSITIVO (push token do app mobile)
+  // =============================================================
+  async registrarDispositivo(request, response) {
+    try {
+      // 🔒 Usa o ID do usuário autenticado pelo JWT — nunca do body
+      const userId = request.user?.userId || request.user?.user_id;
+      if (!userId) {
+        return response.status(401).json({
+          sucesso: false,
+          mensagem: 'Usuário não autenticado.',
+        });
+      }
+
+      const token = request.body?.token || request.body?.user_push_token;
+      if (!token || typeof token !== 'string' || !token.trim()) {
+        return response.status(400).json({
+          sucesso: false,
+          mensagem: 'O campo token (ou user_push_token) é obrigatório.',
+        });
+      }
+
+      if (token.length > 255) {
+        return response.status(400).json({
+          sucesso: false,
+          mensagem: 'O token de push não pode exceder 255 caracteres.',
+        });
+      }
+
+      await db.query(
+        'UPDATE usuarios SET user_push_token = ? WHERE user_id = ?',
+        [token.trim(), userId]
+      );
+
+      return response.status(200).json({
+        sucesso: true,
+        mensagem: 'Dispositivo registrado com sucesso.',
+      });
+    } catch (error) {
+      console.error('❌ Erro ao registrar dispositivo:', error);
+      return response.status(500).json({
+        sucesso: false,
+        mensagem: 'Erro interno ao registrar dispositivo.',
         dados: error.message,
       });
     }

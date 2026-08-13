@@ -38,6 +38,48 @@ module.exports = {
   },
 
   // =============================================================
+  // 🔍 BUSCAR CONDOMÍNIO POR ID (objeto único — app mobile)
+  // =============================================================
+  async buscarcondominio(request, response) {
+    try {
+      const { id } = request.params;
+
+      const sql = `
+        SELECT 
+          cond_id, 
+          cond_nome, 
+          cond_endereco,
+          cond_cidade, 
+          cond_estado,
+          cond_taxa_base
+        FROM condominio
+        WHERE cond_id = ?;
+      `;
+      const [rows] = await db.query(sql, [id]);
+
+      if (rows.length === 0) {
+        return response.status(404).json({
+          sucesso: false,
+          mensagem: `Condomínio ${id} não encontrado.`,
+        });
+      }
+
+      return response.status(200).json({
+        sucesso: true,
+        mensagem: 'Condomínio encontrado.',
+        dados: rows[0],
+      });
+    } catch (error) {
+      console.error('❌ Erro ao buscar condomínio:', error);
+      return response.status(500).json({
+        sucesso: false,
+        mensagem: 'Erro ao buscar condomínio.',
+        dados: error.message,
+      });
+    }
+  },
+
+  // =============================================================
   // 🧾 CADASTRAR CONDOMÍNIO
   // =============================================================
   async cadastrarcondominio(request, response) {

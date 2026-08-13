@@ -4,6 +4,7 @@
 
 const db = require('../dataBase/connection');
 const { notificarNovaEncomenda, notificarEncomendaRetirada } = require('../helpers/notificationHelper');
+const { verificarPosseUserAp } = require('../middleware/ownership');
 
 module.exports = {
   // =============================================================
@@ -46,6 +47,15 @@ module.exports = {
   async listarEncomendasDoMorador(request, response) {
     try {
       const { userap_id } = request.params;
+
+      // 🔒 Anti-IDOR: morador só acessa as encomendas da própria unidade
+      // (equipe — Síndico/Funcionário/ADM — tem acesso amplo)
+      if (!verificarPosseUserAp(request.user, userap_id)) {
+        return response.status(403).json({
+          sucesso: false,
+          mensagem: 'Acesso negado. Você só pode listar as encomendas da sua unidade.',
+        });
+      }
 
       if (!userap_id) {
         return response.status(400).json({
@@ -199,6 +209,60 @@ module.exports = {
       return response.status(500).json({
         sucesso: false,
         mensagem: 'Erro ao atualizar encomenda.',
+        dados: error.message,
+      });
+    }
+  },
+
+  // =============================================================
+  // ✅ MARCAR ENCOMENDA COMO ENTREGUE (portaria / síndico)
+  // =============================================================
+  // Nota: a tabela encomendas NÃO possui coluna enc_retirado_por
+  // (verificado no createnovo.sql) — registramos status + data de retirada.
+  async marcarEncomendaEntregue(request, response) {
+    try {
+      const { id } = request.params;
+
+      // Buscar dados antes de atualizar (para notificação e validação)
+      const [encomenda] = await db.query(
+        'SELECT userap_id, enc_nome_loja, enc_status FROM encomendas WHERE enc_id = ?',
+        [id]
+      );
+
+      if (encomenda.length === 0) {
+        return response.status(404).json({
+          sucesso: false,
+          mensagem: `Encomenda ${id} não encontrada.`,
+        });
+      }
+
+      const sql = `
+        UPDATE encomendas
+        SET enc_status = 'Entregue', enc_data_retirada = NOW()
+        WHERE enc_id = ? AND enc_status = 'Aguardando';
+      `;
+      const [result] = await db.query(sql, [id]);
+
+      if (result.affectedRows === 0) {
+        return response.status(409).json({
+          sucesso: false,
+          mensagem: `Encomenda ${id} já foi entregue ou não está mais aguardando.`,
+        });
+      }
+
+      // 🔔 Notificar morador que a encomenda foi entregue/retirada
+      await notificarEncomendaRetirada(encomenda[0].userap_id, encomenda[0].enc_nome_loja);
+
+      return response.status(200).json({
+        sucesso: true,
+        mensagem: `Encomenda ${id} marcada como entregue.`,
+        dados: { enc_id: Number(id), enc_status: 'Entregue', enc_data_retirada: new Date() },
+      });
+    } catch (error) {
+      console.error('❌ Erro ao marcar encomenda como entregue:', error);
+      return response.status(500).json({
+        sucesso: false,
+        mensagem: 'Erro ao marcar encomenda como entregue.',
         dados: error.message,
       });
     }

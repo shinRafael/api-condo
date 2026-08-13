@@ -131,3 +131,7 @@ dist
 # dotenv environment variable files
 .env
 .env.bak
+
+# Uploads (binários locais; manter apenas .gitkeep)
+uploads/*
+!uploads/.gitkeep

@@ -120,25 +120,51 @@ module.exports = {
       }
 
       const anoAtual = new Date().getFullYear();
-      // 🔧 Protocolo único mesmo após DELETE: MAX(oco_id)+1 é monotônico
-      // (id nunca é reutilizado), evitando colisão de protocolo.
-      const [resultadoBusca] = await db.query(
-        'SELECT COALESCE(MAX(oco_id), 0) + 1 AS proximoNumero FROM ocorrencias;'
-      );
-
-      const proximoNumero = resultadoBusca[0].proximoNumero;
-      const protocoloFormatado = `OCO-${anoAtual}-${proximoNumero.toString().padStart(4, '0')}`;
       const prioridadePadrao = oco_prioridade || 'Média';
 
-      const sqlInsert = `
-        INSERT INTO ocorrencias 
-          (userap_id, oco_protocolo, oco_categoria, oco_descricao, oco_localizacao, oco_data, oco_status, oco_prioridade, oco_imagem)
+      // 🔧 Protocolo derivado do AUTO_INCREMENT (oco_id) — sem race condition.
+      // ANTES: SELECT MAX(oco_id)+1 + INSERT não eram atômicos → 2 requisições
+      // concorrentes liam o mesmo MAX → mesmo protocolo → ER_DUP_ENTRY (500).
+      // AGORA: INSERT com placeholder temporário + UPDATE imediato com o insertId
+      // (AUTO_INCREMENT é único por conexão) dentro de transação — o protocolo
+      // final fica OCO-AAAA-NNNN, visualmente idêntico ao formato anterior.
+      const conn = await db.getConnection();
+      let protocoloFormatado;
+      let ocoId;
+      try {
+        await conn.beginTransaction();
+
+        const sqlInsert = `
+          INSERT INTO ocorrencias 
+            (userap_id, oco_protocolo, oco_categoria, oco_descricao, oco_localizacao, oco_data, oco_status, oco_prioridade, oco_imagem)
         VALUES (?, ?, ?, ?, ?, NOW(), ?, ?, ?);
       `;
-      const values = [userap_id, protocoloFormatado, oco_categoria, oco_descricao, oco_localizacao, 'Aberta', prioridadePadrao, oco_imagem];
-      const [result] = await db.query(sqlInsert, values);
+        // Placeholder único por conexão (threadId) para nunca colidir com
+        // requisições concorrentes na UNIQUE oco_protocolo.
+        const protocoloTemporario = `OCO-${anoAtual}-TEMP-${conn.threadId || Date.now()}`;
+        const values = [userap_id, protocoloTemporario, oco_categoria, oco_descricao, oco_localizacao, 'Aberta', prioridadePadrao, oco_imagem];
+        const [result] = await conn.query(sqlInsert, values);
 
-      // 🔔 Notificar morador sobre nova ocorrência
+        ocoId = result.insertId;
+        protocoloFormatado = `OCO-${anoAtual}-${String(ocoId).padStart(4, '0')}`;
+        await conn.query(
+          'UPDATE ocorrencias SET oco_protocolo = ? WHERE oco_id = ?;',
+          [protocoloFormatado, ocoId]
+        );
+
+        await conn.commit();
+      } catch (error) {
+        try {
+          await conn.rollback();
+        } catch (rollbackError) {
+          console.error('❌ Erro ao fazer rollback da ocorrência:', rollbackError);
+        }
+        throw error;
+      } finally {
+        conn.release();
+      }
+
+      // 🔔 Notificar morador sobre nova ocorrência (após o commit)
       await notificarNovaOcorrencia(userap_id, protocoloFormatado, oco_categoria);
 
       // Busca o registro recém-inserido para retornar completo
@@ -155,7 +181,7 @@ module.exports = {
         LEFT JOIN bloco AS b ON a.bloc_id = b.bloc_id
         WHERE o.oco_id = ?;
         `,
-        [result.insertId]
+        [ocoId]
       );
 
       return response.status(201).json({

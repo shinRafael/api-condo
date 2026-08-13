@@ -956,10 +956,34 @@ module.exports = {
         });
       }
 
-      await db.query(
-        'UPDATE usuarios SET user_push_token = ? WHERE user_id = ?',
-        [token.trim(), userId]
-      );
+      const tokenLimpo = token.trim();
+
+      // 🔄 Transação: libera o token de QUALQUER outro usuário (dispositivo
+      // compartilhado — tablet de portaria, celular de casal) e só então
+      // grava no usuário atual. Evita ER_DUP_ENTRY no UNIQUE user_push_token.
+      const conn = await db.getConnection();
+      try {
+        await conn.beginTransaction();
+
+        // 1) Libera o token de qualquer outro usuário que ainda o possua
+        await conn.query(
+          'UPDATE usuarios SET user_push_token = NULL WHERE user_push_token = ?',
+          [tokenLimpo]
+        );
+
+        // 2) Grava o token no usuário atual (novo dono do aparelho)
+        await conn.query(
+          'UPDATE usuarios SET user_push_token = ? WHERE user_id = ?',
+          [tokenLimpo, userId]
+        );
+
+        await conn.commit();
+      } catch (error) {
+        await conn.rollback();
+        throw error;
+      } finally {
+        conn.release();
+      }
 
       return response.status(200).json({
         sucesso: true,
@@ -967,6 +991,14 @@ module.exports = {
       });
     } catch (error) {
       console.error('❌ Erro ao registrar dispositivo:', error);
+      // Fallback idempotente: corrida concorrente pode reintroduzir o token
+      // entre a liberação e a gravação — duplicidade não deve virar erro 500
+      if (error && error.errno === 1062) {
+        return response.status(200).json({
+          sucesso: true,
+          mensagem: 'Dispositivo já registrado com este token.',
+        });
+      }
       // ⚠️ NUNCA devolver error.message ao cliente (vaza SQL interno)
       return response.status(500).json({
         sucesso: false,

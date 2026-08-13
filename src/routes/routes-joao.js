@@ -18,7 +18,7 @@ router.patch('/apartamentos/:id', verificarToken, isSindico, apartamentoControll
 router.delete('/apartamentos/:id', verificarToken, isSindico, apartamentoController.apagarapartamentos);
 
 // ============================================================
-// � VISITANTES — (Portaria / Gestão)
+// 🛡️ VISITANTES — (Portaria / Gestão)
 // ============================================================
 
 // Lista visitantes relevantes (Aguardando / Entrou) - DEVE VIR ANTES das rotas genéricas

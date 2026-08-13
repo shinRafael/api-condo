@@ -38,6 +38,13 @@ router.post('/usuario', verificarToken, isSindico, usuarioController.cadastrarus
 router.post('/Usuario', verificarToken, isSindico, usuarioController.cadastrarusuario); // Compatibilidade frontend
 
 // ============================================================
+// 📱 CADASTRO PÚBLICO DE MORADOR (app mobile)
+// Força user_tipo='Morador' no controller — ninguém se auto-cadastra como
+// Síndico/ADM. Rate limited pelo limiter global.
+// ============================================================
+router.post('/usuario/cadastro', usuarioController.cadastrarusuarioPublico);
+
+// ============================================================
 // ✏️ EDITAR USUÁRIO (apenas Síndico - pode alterar tudo) - com suporte a upload de foto
 // ============================================================
 router.patch('/usuario/:id', verificarToken, isSindico, uploadPerfil.single('foto'), usuarioController.editarusuario);

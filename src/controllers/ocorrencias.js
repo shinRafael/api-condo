@@ -296,10 +296,19 @@ module.exports = {
   async enviarMensagemParaOcorrencia(request, response) {
     try {
       const { id } = request.params;
-      const remetente_user_id = 3; // ⚠️ Substituir pelo ID real do usuário logado
-      const { ocomsg_mensagem } = request.body;
+      // Usa o ID do usuário autenticado pelo JWT (request.user é injetado pelo verificarToken)
+      const remetente_user_id = request.user?.userId || request.user?.user_id || request.user?.id;
+      const { ocomsg_mensagem, msg_mensagem } = request.body;
+      const mensagemTexto = ocomsg_mensagem || msg_mensagem;
 
-      if (!ocomsg_mensagem) {
+      if (!remetente_user_id) {
+        return response.status(401).json({
+          sucesso: false,
+          mensagem: 'Usuário não autenticado. Não foi possível identificar o remetente.',
+        });
+      }
+
+      if (!mensagemTexto || !mensagemTexto.trim()) {
         return response.status(400).json({
           sucesso: false,
           mensagem: 'A mensagem não pode estar vazia.',
@@ -323,7 +332,7 @@ module.exports = {
         INSERT INTO ocorrencia_mensagens (oco_id, user_id, ocomsg_mensagem, ocomsg_data_envio)
         VALUES (?, ?, ?, NOW());
       `;
-      const [result] = await db.query(sqlInsert, [id, remetente_user_id, ocomsg_mensagem]);
+      const [result] = await db.query(sqlInsert, [id, remetente_user_id, mensagemTexto]);
 
       // 🔔 Notificar morador sobre nova mensagem
       await notificarMensagemOcorrencia(ocorrencia[0].userap_id, ocorrencia[0].oco_protocolo);

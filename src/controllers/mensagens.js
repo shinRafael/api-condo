@@ -88,7 +88,7 @@ module.exports = {
   // =============================================================
   async cadastrarmensagens(request, response) {
     try {
-      const { cond_id, userap_id, msg_mensagem } = request.body;
+      const { cond_id, userap_id, msg_mensagem, oco_id } = request.body;
 
       if (!cond_id || !userap_id || !msg_mensagem) {
         return response.status(400).json({
@@ -99,10 +99,10 @@ module.exports = {
 
       const sqlInsert = `
         INSERT INTO mensagens 
-          (cond_id, userap_id, msg_mensagem, msg_data_envio, msg_status)
-        VALUES (?, ?, ?, NOW(), 'Enviada');
+          (cond_id, userap_id, msg_mensagem, msg_data_envio, msg_status, oco_id)
+        VALUES (?, ?, ?, NOW(), 'Enviada', ?);
       `;
-      const [result] = await db.query(sqlInsert, [cond_id, userap_id, msg_mensagem]);
+      const [result] = await db.query(sqlInsert, [cond_id, userap_id, msg_mensagem, oco_id || null]);
       const insertedId = result.insertId;
 
       const sqlSelect = `

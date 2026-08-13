@@ -307,13 +307,32 @@ module.exports = {
       const tipo = normalizarTipo(not_tipo);
       let listaDeUserApIds = [];
 
+      // 🔒 Autorização por papel:
+      //   - alvos coletivos ('todos'/'bloco-'/'ap-') → somente equipe (Síndico/Funcionário/ADM)
+      //   - alvo 'userap-<id>' → equipe qualquer; morador apenas a própria unidade (anti-IDOR)
+      // (Em DEV, request.user._dev pula a checagem — nunca ativo em produção.)
+      const ehEquipe = ['Sindico', 'Funcionario', 'ADM'].includes(request.user?.userType);
+      const ehDev = Boolean(request.user && request.user._dev);
+
       // Envio para todos os moradores
       if (alvo === 'todos') {
+        if (!ehEquipe && !ehDev) {
+          return response.status(403).json({
+            sucesso: false,
+            mensagem: 'Acesso negado. Apenas síndico ou funcionário pode enviar notificações em massa.',
+          });
+        }
         const [rows] = await db.query('SELECT userap_id FROM usuario_apartamentos;');
         listaDeUserApIds = rows.map((r) => r.userap_id);
       }
       // Envio por bloco
       else if (alvo.startsWith('bloco-')) {
+        if (!ehEquipe && !ehDev) {
+          return response.status(403).json({
+            sucesso: false,
+            mensagem: 'Acesso negado. Apenas síndico ou funcionário pode enviar notificações em massa.',
+          });
+        }
         const blocId = alvo.split('-')[1];
         const [rows] = await db.query(
           `
@@ -328,6 +347,12 @@ module.exports = {
       }
       // Envio por apartamento específico
       else if (alvo.startsWith('ap-')) {
+        if (!ehEquipe && !ehDev) {
+          return response.status(403).json({
+            sucesso: false,
+            mensagem: 'Acesso negado. Apenas síndico ou funcionário pode enviar notificações em massa.',
+          });
+        }
         const apId = alvo.split('-')[1];
         const [rows] = await db.query(
           'SELECT userap_id FROM usuario_apartamentos WHERE ap_id = ?;',
@@ -339,12 +364,8 @@ module.exports = {
       else if (alvo.startsWith('userap-')) {
         const userapId = alvo.split('-')[1];
 
-        // 🔒 Anti-IDOR: morador só pode notificar a própria unidade;
-        // equipe (Síndico/Funcionário/ADM) pode notificar qualquer unidade.
-        // (Em DEV, request.user._dev pula a checagem — nunca ativo em produção.)
-        const ehMorador = request.user?.userType === 'Morador';
-        const ehDev = Boolean(request.user && request.user._dev);
-        if (ehMorador && !ehDev && Number(request.user.userApId) !== Number(userapId)) {
+        // 🔒 Anti-IDOR por whitelist: quem NÃO é equipe só pode notificar a própria unidade.
+        if (!ehEquipe && !ehDev && Number(request.user.userApId) !== Number(userapId)) {
           return response.status(403).json({
             sucesso: false,
             mensagem: 'Acesso negado. Você só pode enviar notificações para a sua unidade.',

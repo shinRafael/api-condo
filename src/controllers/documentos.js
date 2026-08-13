@@ -10,19 +10,29 @@ module.exports = {
   // =============================================================
   async listardocumentos(request, response) {
     try {
+      // 🔒 Escopo por condomínio: o morador vê apenas os documentos do SEU condomínio.
+      // O userApId do JWT → usuario_apartamentos → apartamentos → bloco → cond_id.
       const sql = `
         SELECT 
-          doc_id,
-          cond_id,
-          doc_nome,
-          doc_categoria,
-          doc_data,
-          doc_tamanho,
-          doc_url
-        FROM documentos;
+          d.doc_id,
+          d.cond_id,
+          d.doc_nome,
+          d.doc_categoria,
+          d.doc_data,
+          d.doc_tamanho,
+          d.doc_url
+        FROM documentos d
+        WHERE d.cond_id = (
+          SELECT b.cond_id
+          FROM usuario_apartamentos ua
+          JOIN apartamentos a ON a.ap_id = ua.ap_id
+          JOIN bloco b ON b.bloc_id = a.bloc_id
+          WHERE ua.userap_id = ?
+          LIMIT 1
+        );
       `;
 
-      const [rows] = await db.query(sql);
+      const [rows] = await db.query(sql, [request.user.userApId]);
 
       return response.status(200).json({
         sucesso: true,
@@ -34,7 +44,6 @@ module.exports = {
       return response.status(500).json({
         sucesso: false,
         mensagem: 'Erro na listagem de documentos.',
-        dados: error.message,
       });
     }
   },

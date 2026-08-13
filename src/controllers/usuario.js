@@ -7,7 +7,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const path = require('path');
 const fs = require('fs');
-const { uploadPerfil } = require('./upload');
+const { uploadPerfil, validarMagicBytes } = require('./upload');
 const transporter = require('../lib/mailer');
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -390,8 +390,21 @@ module.exports = {
           }
         }
       } else if (user_foto !== undefined) {
-        // Se user_foto for enviado no body (não pelo upload), usar ele
-        fotoAtualizar = user_foto;
+        // 🔒 Segurança: aceita apenas caminhos de upload do sistema (prefixo fixo),
+        // nunca paths arbitrários do body — evita fs.unlinkSync em arquivo arbitrário
+        // do servidor (ex.: morador setar user_foto='.env' e o próximo upload deletá-lo).
+        if (
+          typeof user_foto === 'string' &&
+          user_foto.startsWith('/uploads/perfil/') &&
+          !user_foto.includes('..')
+        ) {
+          fotoAtualizar = user_foto;
+        } else {
+          return response.status(400).json({
+            sucesso: false,
+            mensagem: 'Caminho de foto inválido.',
+          });
+        }
       }
 
       let sql, values;
@@ -692,6 +705,16 @@ module.exports = {
         return response.status(400).json({
           sucesso: false,
           mensagem: 'Nenhuma imagem foi enviada.',
+        });
+      }
+
+      // 🔒 Validação de conteúdo real (magic bytes) — não confiar só em extensão/mimetype
+      const tipoFoto = validarMagicBytes(request.file.path);
+      if (!tipoFoto) {
+        fs.unlinkSync(request.file.path);
+        return response.status(400).json({
+          sucesso: false,
+          mensagem: 'Tipo de imagem não suportado.',
         });
       }
 
